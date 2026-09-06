@@ -36,6 +36,7 @@
   - [5. Native E-Commerce](#5-native-e-commerce)
 - [Directory Structure](#-directory-structure)
 - [Developer Guide (Creating Custom APIs & Modules)](./DEVELOPER_GUIDE.md)
+- [Amazon EC2 Deployment Guide](./EC2_DEPLOYMENT_GUIDE.md)
 - [Local Development & Operations](#-local-development--operations)
 - [Environment Variables Guide](#-environment-variables-guide)
 - [License](#-license)

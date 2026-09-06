@@ -16,6 +16,8 @@ A complete, practical guide for backend developers on how to build, extend, and 
 9. [Creating a Completely New Database Module](#9-creating-a-completely-new-database-module)
 10. [Local Testing & Production Deployment](#10-local-testing--production-deployment)
 11. [Cheat Sheet & Best Practices](#11-cheat-sheet--best-practices)
+12. [Production-Grade Performance, Scalability & Efficiency Practices](#12-production-grade-performance-scalability--efficiency-practices)
+13. [Pre-Production Checklist](#13-pre-production-checklist)
 
 ---
 
@@ -397,3 +399,304 @@ git push origin main
    - Routes under `/admin/*` = Admin only (Requires `Authorization: Bearer <TOKEN>`).
 4. **Dates in Medusa**: Always parse date strings into JavaScript `Date` objects (`new Date(body.start_date)`) before passing to module services.
 5. **No frontend bloat**: Keep the backend pure API. All client UI lives in external Next.js, React, or Flutter frontends communicating over JSON.
+
+---
+
+## 12. Production-Grade Performance, Scalability & Efficiency Practices
+
+Everything in Sections 1–11 makes your API *correct*. This section makes it *fast, cheap to run, and safe under load* — the difference between a POC and something that survives real traffic.
+
+### 12.1 Bound Every Query — Never Return Unbounded Lists
+
+An endpoint with no `limit` is an incident waiting to happen — one table growing to 500k rows turns a 50ms response into a multi-second one, and eventually an out-of-memory crash.
+
+```typescript
+// ❌ Bad — unbounded, O(n) memory and O(n log n) sort cost grows forever
+const items = await rentalService.listRentalItems()
+
+// ✅ Good — always cap limit, default it, and hard-cap the max
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  const { limit, offset } = req.query as { limit?: string; offset?: string }
+
+  const take = Math.min(Number(limit) || 20, 100) // hard ceiling: never allow limit=100000
+  const skip = Number(offset) || 0
+
+  const [items, count] = await rentalService.listAndCountRentalItems(
+    {},
+    { take, skip }
+  )
+
+  res.json({ items, count, limit: take, offset: skip })
+}
+```
+
+For tables that will grow into the millions (e.g. `Rental` bookings, `EventAttendee`), prefer **cursor-based pagination** over `offset` — offset pagination does `O(offset + limit)` work on the DB side (it has to scan and discard `offset` rows), while cursor pagination (`WHERE id > last_seen_id ORDER BY id LIMIT n`) is `O(limit)` regardless of how deep you page.
+
+```typescript
+// Cursor-based — cheap even on page 10,000
+const { after, limit } = req.query as { after?: string; limit?: string }
+const take = Math.min(Number(limit) || 20, 100)
+
+const filters: any = {}
+if (after) filters.id = { $gt: after }
+
+const items = await rentalService.listRentalItems(filters, {
+  take,
+  order: { id: "ASC" },
+})
+```
+
+### 12.2 Kill N+1 Queries — Batch with `query.graph()`
+
+The single most common performance bug in Medusa apps: looping over a list and querying inside the loop.
+
+```typescript
+// ❌ Bad — N+1: 1 query for the list + N queries inside the loop = O(n) round-trips
+const rentals = await rentalService.listRentalItems()
+for (const rental of rentals) {
+  const product = await productService.retrieveProduct(rental.product_id) // hits DB every iteration
+}
+
+// ✅ Good — one batched query using Query/Link, O(1) round-trips regardless of n
+const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+const { data: rentals } = await query.graph({
+  entity: "rental_item",
+  fields: ["*", "product.*", "product.thumbnail"],
+})
+```
+
+If you must fetch related data manually (no Link defined), batch the IDs first and do **one** `IN (...)` query instead of N single-row queries:
+
+```typescript
+const productIds = rentals.map((r) => r.product_id)
+const { data: products } = await query.graph({
+  entity: "product",
+  fields: ["id", "title", "thumbnail"],
+  filters: { id: productIds }, // single query, not a loop
+})
+const productMap = new Map(products.map((p) => [p.id, p])) // O(1) lookup below
+```
+
+### 12.3 Watch Your Own Time & Space Complexity, Not Just the DB's
+
+Once data is in memory, sloppy JS can dominate your response time more than the query did.
+
+```typescript
+// ❌ Bad — nested loop = O(n * m). With 1,000 rentals and 1,000 products, that's 1,000,000 comparisons.
+const enriched = rentals.map((rental) => {
+  const product = products.find((p) => p.id === rental.product_id) // O(m) per rental
+  return { ...rental, product }
+})
+
+// ✅ Good — build a Map once (O(m)), then O(1) lookup per rental → total O(n + m)
+const productMap = new Map(products.map((p) => [p.id, p]))
+const enriched = rentals.map((rental) => ({
+  ...rental,
+  product: productMap.get(rental.product_id),
+}))
+```
+
+Space complexity matters too — don't hold full result sets in memory just to compute a count or a single aggregate:
+
+```typescript
+// ❌ Bad — loads every row into memory just to count them, O(n) space for a number
+const all = await rentalService.listRentalItems()
+const total = all.length
+
+// ✅ Good — let the database count, O(1) space on your side
+const [, total] = await rentalService.listAndCountRentalItems({}, { take: 0 })
+```
+
+### 12.4 Cache What's Expensive and Doesn't Change Every Second
+
+Product catalogs, tax regions, shipping options — these change far less often than they're read. Use Redis (already provisioned, see the Cloud infra section) as a cache-aside layer.
+
+```typescript
+import { Modules } from "@medusajs/framework/utils"
+
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  const cacheKey = `store:products:region:${req.query.region_id}`
+  const cacheService = req.scope.resolve("cacheService") // or a direct ioredis client
+
+  const cached = await cacheService.get(cacheKey)
+  if (cached) {
+    res.json(JSON.parse(cached))
+    return
+  }
+
+  const products = await fetchProductsFromDb(req)
+  await cacheService.set(cacheKey, JSON.stringify(products), 60) // TTL: 60s
+
+  res.json(products)
+}
+```
+
+**Invalidation rule of thumb**: any workflow that mutates a resource should delete/refresh its cache key(s) in the same step (or the next tick), not rely on TTL alone if staleness would confuse a customer (e.g. price changes).
+
+### 12.5 Make Mutating Endpoints Idempotent
+
+Mobile networks retry failed requests. Without idempotency, a flaky connection can create the same rental booking twice.
+
+```typescript
+export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const idempotencyKey = req.headers["idempotency-key"] as string | undefined
+
+  if (idempotencyKey) {
+    const existing = await idempotencyService.find(idempotencyKey)
+    if (existing) {
+      res.status(existing.status_code).json(existing.response_body)
+      return
+    }
+  }
+
+  const { result } = await submitBookingWorkflow(req.scope).run({ input: req.body })
+
+  if (idempotencyKey) {
+    await idempotencyService.save(idempotencyKey, 201, { booking: result })
+  }
+
+  res.status(201).json({ booking: result })
+}
+```
+
+RN app side: generate a UUID once per user action (e.g. once per "tap Book Now"), send it as `Idempotency-Key`, and reuse the *same* UUID if you retry the same request.
+
+### 12.6 Rate Limit — Protect the DB from Your Own Traffic Spikes
+
+A single misbehaving client (or a bug in the RN app that retries in a tight loop) can take down shared Postgres/Redis for everyone.
+
+```typescript
+// src/api/middlewares.ts
+import { defineMiddlewares } from "@medusajs/framework/http"
+import rateLimit from "express-rate-limit"
+
+const bookingLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,             // 20 requests per IP per minute
+  message: { message: "Too many requests, slow down." },
+})
+
+export default defineMiddlewares({
+  routes: [
+    {
+      matcher: "/store/rentals/book",
+      method: "POST",
+      middlewares: [bookingLimiter],
+    },
+  ],
+})
+```
+
+### 12.7 Don't Block the Request-Response Cycle on Heavy Work
+
+If an endpoint sends an email, generates a PDF invoice, or calls a slow third-party API, don't make the customer wait for it.
+
+```typescript
+// ❌ Bad — customer's HTTP request stays open until the email provider responds
+export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const { result } = await createBookingWorkflow(req.scope).run({ input: req.body })
+  await emailService.send(result.customer_email, "Booking confirmed") // adds 500ms-2s
+  res.status(201).json({ booking: result })
+}
+
+// ✅ Good — respond immediately, emit an event, let a subscriber handle it async
+export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const { result } = await createBookingWorkflow(req.scope).run({ input: req.body })
+  res.status(201).json({ booking: result }) // fast response, ~O(1) extra latency
+}
+
+// src/subscribers/booking-created.ts — runs after the response is already sent
+export default async function bookingCreatedHandler({ event, container }) {
+  const emailService = container.resolve("emailService")
+  await emailService.send(event.data.customer_email, "Booking confirmed")
+}
+export const config = { event: "booking.created" }
+```
+
+### 12.8 Index What You Filter and Sort By
+
+Every `filters: { status: "active" }` or `order: { created_at: "DESC" }` in your service methods needs a matching database index, or Postgres will do a full table scan (`O(n)`) instead of an index lookup (`O(log n)`).
+
+```typescript
+// src/modules/rental/models/rental-booking.ts
+import { model } from "@medusajs/framework/utils"
+
+export const RentalBooking = model.define("rental_booking", {
+  id: model.id().primaryKey(),
+  customer_id: model.text(),
+  status: model.enum(["pending", "confirmed", "returned", "cancelled"]),
+  start_date: model.dateTime(),
+}).indexes([
+  { on: ["status"] },
+  { on: ["customer_id", "start_date"] }, // composite index for your most common filter combo
+])
+```
+
+Run `EXPLAIN ANALYZE` on your slowest queries in the Neon/Postgres console before production — "Seq Scan" in the output on a large table is your signal to add an index.
+
+### 12.9 Design Stateless — Cloud Will Run Multiple Instances
+
+Once traffic grows, Medusa Cloud (or Railway/Render) will horizontally scale your app to multiple instances behind a load balancer. Anything stored in a route handler's local memory (an in-process cache, a `Map` of pending requests, a counter variable) will be **inconsistent across instances** — instance A won't see what instance B wrote.
+
+```typescript
+// ❌ Bad — breaks the moment you run 2+ instances; each has its own copy
+const pendingBookings = new Map<string, any>()
+
+// ✅ Good — shared state lives in Redis or Postgres, visible to every instance
+await redisClient.set(`pending:${bookingId}`, JSON.stringify(data), "EX", 300)
+```
+
+### 12.10 Consistent, Structured Error Responses
+
+Don't leak stack traces to the client, and don't let every route invent its own error shape — makes the RN app's error handling unpredictable.
+
+```typescript
+// src/api/middlewares.ts — a global error shape
+export function errorHandler(err: any, req: MedusaRequest, res: MedusaResponse, next: any) {
+  const status = err.status || 500
+  res.status(status).json({
+    error: {
+      code: err.code || "INTERNAL_ERROR",
+      message: status >= 500 ? "Something went wrong. Please try again." : err.message,
+    },
+  })
+  // Log the real error server-side, never send it to the client
+  console.error(err)
+}
+```
+
+### 12.11 Observability — You Can't Fix What You Can't See
+
+Minimum viable production setup:
+
+- **Health check**: keep `/health` cheap (no DB call) so load balancers don't false-positive under DB slowness — or add a separate `/health/deep` that does check DB/Redis for your own monitoring.
+- **Structured logs**: log `{ route, duration_ms, status_code }` per request, not free-text strings — makes it queryable later.
+- **Slow query log**: log any DB call over e.g. 500ms with its filters, so you know exactly which endpoint to optimize next.
+
+### 12.12 Compress Large Responses
+
+```typescript
+// medusa-config.ts or your Express layer
+import compression from "compression"
+app.use(compression()) // gzip/brotli — cuts a 200KB product-list JSON to ~30KB over the wire
+```
+
+Matters a lot for mobile clients on 4G/patchy networks — smaller payload = faster perceived load in the RN app.
+
+---
+
+## 13. Pre-Production Checklist
+
+| Check | Why |
+|---|---|
+| Every list endpoint has `limit`/`offset` (or cursor) with a hard max | Prevents unbounded queries |
+| No loops calling the DB per iteration | Prevents N+1, O(n) round-trips |
+| Indexes exist on every filtered/sorted column | Prevents full table scans |
+| Mutating endpoints accept `Idempotency-Key` | Prevents duplicate bookings/orders from retries |
+| Rate limiting on write endpoints | Prevents abuse and DB overload |
+| No `new Map()`/local variables used as cross-request state | Required for horizontal scaling |
+| Heavy work (email, PDF, webhooks) moved to subscribers/jobs | Keeps response times low |
+| Load-tested with realistic concurrency (k6/artillery) before launch | Confirms it holds up before real users find out |
+| `EXPLAIN ANALYZE` run on the 5 slowest known queries | Confirms indexes are actually being used |
+| Errors return a consistent `{ error: { code, message } }` shape, never a raw stack trace | Predictable client-side handling, no leaked internals |
+
