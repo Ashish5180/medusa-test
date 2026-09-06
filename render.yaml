@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: medusa-backend
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install --include=dev && npm run build:render
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: STORE_CORS
+        sync: false
+      - key: ADMIN_CORS
+        sync: false
+      - key: AUTH_CORS
+        sync: false
+      - key: AUTH_MFA_ENCRYPTION_KEY
+        sync: false

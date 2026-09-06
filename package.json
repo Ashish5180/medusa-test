@@ -9,6 +9,7 @@
   "packageManager": "npm@11.19.0",
   "scripts": {
     "build": "medusa build",
+    "build:render": "medusa build && medusa db:migrate",
     "start": "medusa start",
     "dev": "medusa develop",
     "lint": "medusa lint",
