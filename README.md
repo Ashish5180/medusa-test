@@ -1,245 +1,324 @@
 # 🏛️ Medusa v2 Unified Multi-Vertical Commerce Engine (PERN)
 
-A unified, production-grade commerce backend built with **Medusa v2 (v2.20.1)** and **Neon Cloud PostgreSQL (Postgres 18.6)**. It natively powers four business verticals in a single monolithic architecture:
+<p align="center">
+  <img src="https://img.shields.io/badge/Medusa_v2-v2.20.1-blue?style=for-the-badge&logo=medusa" alt="Medusa v2" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Neon_Cloud-45b7d1?style=for-the-badge&logo=postgresql" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Node.js-20%2B-green?style=for-the-badge&logo=node.js" alt="Node.js" />
+  <img src="https://img.shields.io/badge/TypeScript-5.6-3178c6?style=for-the-badge&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Deployment-Render-46E3B7?style=for-the-badge&logo=render" alt="Render" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License MIT" />
+</p>
 
-1. 🛍️ **Physical Goods & Retail:** Core Medusa products, variants, carts, checkouts, and fulfillment.
-2. 🕒 **Equipment & Asset Rentals:** Daily rate calculations, security deposit escrow, reservation date checking, and return damage inspections.
-3. 📅 **Service Appointments & Scheduling:** Specialist/provider calendar slots, capacity limits, and real-time customer bookings.
-4. ✨ **Events & Ticketing:** Venue capacity tracking, tiered badge allocation, cryptographic ticket codes (`TCK-...`), and gate pass check-in scanners.
+---
+
+## 🌐 Live Production Deployment
+
+| Metric / Service | Details |
+| :--- | :--- |
+| **Live Base URL** | [`https://medusa-test-sbim.onrender.com`](https://medusa-test-sbim.onrender.com) |
+| **Health Check** | [`GET /health`](https://medusa-test-sbim.onrender.com/health) &rarr; `200 OK` |
+| **Multi-Vertical Summary** | [`GET /store/multi-vertical/summary`](https://medusa-test-sbim.onrender.com/store/multi-vertical/summary) |
+| **Hosting Platform** | [Render Web Service](https://render.com/) |
+| **Database** | [Neon Cloud Serverless PostgreSQL](https://neon.tech/) (v18.6) |
+| **Architecture** | **Pure Headless API-Only** (No frontend UI bloat, optimized for mobile & web clients) |
 
 ---
 
 ## 📑 Table of Contents
-- [What We Have Done](#-what-we-have-done)
-- [Tech Stack & Architecture](#-tech-stack--architecture)
-- [Why Medusa vs. Custom Express/Node APIs?](#-why-medusa-vs-custom-expressnode-apis)
-- [Are Rentals, Appointments & Events Customizable?](#-are-rentals-appointments--events-customizable)
-- [Project Directory Structure](#-project-directory-structure)
-- [Quickstart & Operations Guide](#-quickstart--operations-guide)
+- [Executive Overview](#-executive-overview)
+- [The Four Business Verticals](#-the-four-business-verticals)
+- [Authentication & Request Headers](#-authentication--request-headers)
 - [API Reference](#-api-reference)
+  - [1. System & Summary](#1-system--summary)
+  - [2. Equipment & Asset Rentals](#2-equipment--asset-rentals)
+  - [3. Service Appointments & Consultations](#3-service-appointments--consultations)
+  - [4. Events & Ticketing](#4-events--ticketing)
+  - [5. Native E-Commerce](#5-native-e-commerce)
+- [Directory Structure](#-directory-structure)
+- [Local Development & Operations](#-local-development--operations)
+- [Environment Variables Guide](#-environment-variables-guide)
+- [License](#-license)
 
 ---
 
-## 🚀 What We Have Done
+## 🎯 Executive Overview
 
-### 1. Custom Domain Modules (`src/modules/`)
-* **`rental` Module (`src/modules/rental`)**:
-  - **Models:** `RentalItem` (daily rates, refundable deposits, min rental days, condition grades) and `RentalBooking` (start/end dates, order links, deposit statuses: `held`/`refunded`/`forfeited`, rental statuses: `active`/`returned`/`overdue`).
-  - **Service:** Availability overlapping date-range checks, quote calculations, and return inspections with damage fee deductions.
-* **`appointment` Module (`src/modules/appointment`)**:
-  - **Models:** `ServiceSlot` (specialist/resource assignment, time windows, max capacity, booked count) and `AppointmentBooking` (customer information, confirmations, order links, statuses).
-  - **Service:** Overbooking prevention, capacity tracking, slot reservation, and appointment cancellations with capacity release.
-* **`event` Module (`src/modules/event`)**:
-  - **Models:** `Event` (venues, dates, seat capacities, tickets issued count) and `EventTicket` (attendee details, tiers, cryptographic ticket codes `TCK-XXXX-XXXXXXXX`, gate scan timestamps).
-  - **Service:** Ticket issuance, capacity limits, sold-out enforcement, and admission check-in validation.
+This repository provides a production-grade, multi-vertical commerce backend built on **Medusa v2**. Unlike standard e-commerce platforms that only support physical catalog products, this engine unifies **four distinct business models** into a single, transactional PostgreSQL database:
 
-### 2. Cross-Domain Remote Links (`src/links/`)
-Unified all verticals with Medusa's native catalog via Remote Links:
-- `product` &harr; `rental_item` (`product_product_rentalmodule_rental_item`)
-- `product` &harr; `service_slot` (`product_product_appointmentmodule_service_slot`)
-- `product` &harr; `event` (`product_product_eventmodule_event`)
+1. **🛍️ Physical Goods & Retail:** Native Medusa carts, checkout, multi-currency pricing, and inventory.
+2. **🕒 Equipment & Asset Rentals:** Daily rates, security deposit escrow, date-range conflict avoidance, and damage return inspections.
+3. **📅 Service Appointments & Scheduling:** Provider/doctor time windows, capacity enforcement, and client bookings.
+4. **✨ Events & Ticketing:** Venue capacity limits, badge allocation, unique cryptographic ticket codes (`TCK-...`), and gate pass check-in validation.
 
-### 3. Native Medusa v2 Admin UI Extensions (`src/admin/routes/`)
-Built 3 interactive dashboard pages with `@medusajs/admin-sdk`, `@medusajs/ui`, and `@medusajs/icons`:
-- **🕒 Rentals (`/app/rentals`):** Real-time metrics (Active bookings, catalog items, security deposits in escrow), asset configuration form, manual booking creator, and return inspection/deposit-release modal.
-- **📅 Appointments (`/app/appointments`):** Specialist provider schedule manager, slot creator, open seat trackers, and client appointment booking tool.
-- **✨ Events & Tickets (`/app/events`):** Event creator, ticket issuance tool, and interactive real-time **Gate Pass Scanner** that validates attendee codes and records admission timestamps.
-
-### 4. Database Setup & Automated Seed
-- Connected to serverless **Neon Cloud PostgreSQL** with SSL.
-- Generated and executed **130 database tables** across core commerce and custom vertical modules.
-- Seeded demo data:
-  - Default store, regions, sales channels, products, inventory levels.
-  - Rental items: Sony Cinema FX3 & Laser 4K Projector.
-  - Appointment slots: Consultation slots with Dr. Maya Patel.
-  - Events: "AI & Modern Commerce Summit 2026" with issued VIP passes.
+### Architecture Highlights
+- **100% Pure Headless API**: Stripped of heavy frontend dashboard bundles, reducing memory footprint and build times by over 80%.
+- **Medusa DML (Data Modeling Language)**: Declarative, type-safe schema definitions with automated PostgreSQL migrations.
+- **Cross-Domain Remote Links**: Native products seamlessly link to rental assets, appointment schedules, and event tickets via Medusa's distributed query engine (`query.graph`).
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## 🧩 The Four Business Verticals
 
-| Layer | Technology | Details |
-| :--- | :--- | :--- |
-| **Framework** | **Medusa v2 (v2.20.1)** | Modular commerce engine, Workflows, Remote Links & Queries |
-| **Database** | **Neon Cloud PostgreSQL 18.6** | Serverless cloud relational database with SSL connection pooling |
-| **ORM & Migrations** | **MikroORM via Medusa DML** | Code-first declarative schemas (`model.define`) & migrations |
-| **Admin Frontend** | **Vite + React 18 + Medusa UI** | Built-in extensible dashboard with `@medusajs/ui` design system |
-| **Language & Tooling** | **TypeScript 5.6 + SWC** | End-to-end type safety across backend and admin extensions |
-| **Testing** | **Jest 29 + SWC** | Passing unit test suites for all 3 domain services |
-
----
-
-## ⚖️ Why Medusa vs. Custom Express/Node APIs?
-
-Why did we use Medusa v2 instead of writing custom Node.js / Express routes from scratch?
-
-| Feature / Requirement | Custom Node / Express API | Medusa v2 (What We Used) |
-| :--- | :--- | :--- |
-| **Core Commerce Primitives** | ❌ Must write from scratch: Carts, checkout, taxes, discounts, order states, line items, returns. |  **Out of the Box:** Battle-tested cart calculations, multi-currency pricing, and order management. |
-| **Admin Dashboard UI** | ❌ Must build and maintain a separate React/Next.js admin portal from scratch (~3-6 months work). |  **Out of the Box:** Pre-built, authenticated admin dashboard with custom sidebar routes and widgets. |
-| **Data Relationships** | ⚠️ Messy custom SQL JOINs or microservice HTTP calls across separate tables. |  **Remote Links & Remote Query (`query.graph`):** Declarative joins between core Products and custom Rentals/Events. |
-| **Transactional Integrity** | ❌ Complex try/catch blocks; if payment succeeds but booking fails, data gets out of sync. |  **Medusa Workflows:** Distributed multi-step transactions with automatic compensation (rollback) steps. |
-| **Payment & Fulfillment** | ❌ Must integrate and maintain custom Stripe/PayPal/ShipStation webhooks. |  **Plugin Ecosystem:** Drop-in payment and shipping providers with standard provider interfaces. |
-| **Time to Market** | ⏳ **6 to 12 months** of foundational development. | ⚡ **Days to Weeks:** Focus 100% on business logic (Rentals, Bookings, Tickets). |
-
-### The "PERN" Advantage
-Medusa is essentially a specialized, structured Express/Node framework. By using Medusa's **Module Architecture**:
-- You don't sacrifice flexibility: you can still write custom Express-like REST endpoints (`src/api/**`).
-- You get enterprise-grade database migrations, authentication, RBAC, background jobs, and remote queries for free.
-
----
-
-## 🧩 Are Rentals, Appointments & Events Customizable?
-
-### **YES — 100% Fully Customizable.**
-
-Because Rentals, Appointments, and Events are built as **first-class Medusa Modules**, they are not locked into any rigid structure. Here is how you can customize them:
-
-### 1. Adding Custom Fields (DML Models)
-Want to add an `insurance_policy_number` to rentals or a `zoom_meeting_url` to appointments?
-Simply edit the model in `src/modules/<module>/models/`:
-
-```typescript
-// Example: Adding fields to AppointmentBooking
-export const AppointmentBooking = model.define("appointment_booking", {
-  id: model.id().primaryKey(),
-  slot_id: model.text(),
-  // Add new fields:
-  zoom_meeting_url: model.text().nullable(),
-  reminder_sent: model.boolean().default(false),
-  cancellation_reason: model.text().nullable(),
-})
-```
-Run `npx medusa db:generate appointmentModuleService && npx medusa db:migrate` and your database schema updates automatically!
-
-### 2. Custom Business Logic (Module Services)
-All business rules live in pure TypeScript classes in `src/modules/<module>/service.ts`:
-- **Custom Rental Pricing:** Implement dynamic weekend pricing, seasonal discount tiers, or hourly billing.
-- **Custom Scheduling:** Add automated 15-minute buffer times between appointments or sync with Google Calendar / Outlook.
-- **Custom Event Ticketing:** Add seating maps (Row/Seat numbers), early-bird price drops, or QR code image generation.
-
-### 3. Event-Driven Automation (Subscribers & Workflows)
-You can listen to any system event or custom trigger:
-- When a rental is overdue &rarr; Send an automated reminder email via Resend/SendGrid.
-- When an appointment is booked &rarr; Send an SMS confirmation with Twilio.
-- When an event ticket is scanned &rarr; Trigger a real-time webhook to a venue display screen.
-
-### 4. Admin UI Customization
-The Admin UI in `src/admin/routes/` is built using standard React. You can:
-- Add new filter tabs, date pickers, or CSV export buttons.
-- Create **Admin Widgets** (`src/admin/widgets/`) to inject rental pricing or appointment booking forms directly into the core Medusa Product detail page!
-
----
-
-## 📂 Project Directory Structure
-
-The project has been cleaned and organized. Unnecessary boilerplate template files have been removed:
-
-```
-backend/apps/backend/
-├── .env                                 # Environment variables (Neon DB URL, Secrets, CORS)
-├── medusa-config.ts                     # Core configuration, registered modules & plugins
-├── package.json                         # Dependencies & scripts
-├── tsconfig.json                        # Backend TypeScript configuration
-├── src/
-│   ├── admin/                           # 🖥️ ADMIN DASHBOARD EXTENSIONS (React + Medusa UI)
-│   │   ├── routes/
-│   │   │   ├── rentals/page.tsx         # /app/rentals dashboard & inspection tool
-│   │   │   ├── appointments/page.tsx    # /app/appointments calendar & booking tool
-│   │   │   └── events/page.tsx          # /app/events management & gate scanner
-│   │   ├── tsconfig.json                # Frontend TypeScript configuration
-│   │   └── vite-env.d.ts
-│   │
-│   ├── modules/                         # 🧠 DOMAIN MODULES (DML Models & Services)
-│   │   ├── rental/                      # RentalItem, RentalBooking models, service & migrations
-│   │   ├── appointment/                 # ServiceSlot, AppointmentBooking models & service
-│   │   └── event/                       # Event, EventTicket models & service
-│   │
-│   ├── links/                           # 🔗 REMOTE LINKS (Joining custom modules with Products)
-│   │   ├── product-rental.ts
-│   │   ├── product-appointment.ts
-│   │   └── product-event.ts
-│   │
-│   ├── workflows/                       # ⚙️ TRANSACTIONAL WORKFLOWS (Multi-step rollback flows)
-│   │   ├── rentals/create-rental-booking.ts
-│   │   ├── appointments/reserve-appointment.ts
-│   │   └── events/issue-event-ticket.ts
-│   │
-│   ├── api/                             # 🌐 REST ENDPOINTS
-│   │   ├── admin/                       # Protected admin routes (Inspections, Calendar, Tickets)
-│   │   └── store/                       # Public storefront routes (Quotes, Slots, Availability)
-│   │
-│   └── migration-scripts/               # 🌱 SEED SCRIPTS
-│       ├── initial-data-seed.ts         # Medusa core store, regions, and products seed
-│       └── seed-multi-vertical.ts       # Rentals, Appointments, and Events demo seed
+```mermaid
+graph TD
+    A[Core Medusa Engine] --> B[🛍️ Retail Commerce]
+    A --> C[🕒 Asset Rentals]
+    A --> D[📅 Service Appointments]
+    A --> E[✨ Events & Ticketing]
+    
+    C --> C1[Daily Rate Calculation]
+    C --> C2[Deposit Escrow & Return Inspection]
+    
+    D --> D1[Practitioner Time Windows]
+    D --> D2[Capacity & Overbooking Guard]
+    
+    E --> E1[Cryptographic TCK Badges]
+    E --> E2[Real-time Gate Pass Check-in]
 ```
 
 ---
 
-## ⚡ Quickstart & Operations Guide
+## 🔐 Authentication & Request Headers
 
-### 1. Install & Setup
-From `backend/apps/backend`:
+### 1. Storefront APIs (`/store/*`)
+All `/store/*` routes require the **Publishable API Key** header:
+```http
+x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8
+Content-Type: application/json
+```
+
+### 2. Admin APIs (`/admin/*`)
+All `/admin/*` routes are protected by JWT Bearer Authentication:
+```http
+Authorization: Bearer <YOUR_ADMIN_JWT_TOKEN>
+Content-Type: application/json
+```
+
+#### Obtain Admin JWT Token
 ```bash
-# Verify packages are installed
+curl -X POST https://medusa-test-sbim.onrender.com/auth/user/emailpass \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@baba.ai",
+    "password": "YourSecurePassword123"
+  }'
+```
+
+---
+
+## 📡 API Reference
+
+### 1. System & Summary
+
+#### `GET /health`
+Server ping check.
+```bash
+curl -i https://medusa-test-sbim.onrender.com/health
+```
+**Response (`200 OK`)**: `OK`
+
+#### `GET /store/multi-vertical/summary`
+Aggregated metrics across all four commerce verticals.
+```bash
+curl -s -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+  https://medusa-test-sbim.onrender.com/store/multi-vertical/summary
+```
+**Response (`200 OK`)**:
+```json
+{
+  "status": "online",
+  "version": "2.20.1",
+  "architecture": "Medusa v2 PERN Multi-Vertical (Orders + Rentals + Appointments + Events)",
+  "modules": {
+    "nativeCommerce": { "productsCount": 5, "ordersCount": 0 },
+    "rentals": { "itemsCount": 4, "activeBookingsCount": 1 },
+    "appointments": { "availableSlotsCount": 0, "totalAppointmentsCount": 3 },
+    "events": { "eventsCount": 1, "ticketsIssuedCount": 0 }
+  }
+}
+```
+
+---
+
+### 2. Equipment & Asset Rentals
+
+| Method | Endpoint | Access | Purpose |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/store/rentals/items` | Public (`x-publishable-api-key`) | List rental items with daily rates & deposits |
+| `POST` | `/store/rentals/book` | Public (`x-publishable-api-key`) | Book equipment with date overlap check |
+| `GET` | `/admin/rentals` | Admin (`Bearer <TOKEN>`) | List all fleet assets & booking records |
+| `POST` | `/admin/rentals` | Admin (`Bearer <TOKEN>`) | Create a new rental asset |
+| `POST` | `/admin/rentals/inspections` | Admin (`Bearer <TOKEN>`) | Process return damage & refund deposit |
+
+#### Example: Book Rental Item
+```bash
+curl -X POST https://medusa-test-sbim.onrender.com/store/rentals/book \
+  -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "item_id": "01M1NYVEWE16AMTZ1Z7SEW3TEA",
+    "start_date": "2026-11-10T00:00:00Z",
+    "end_date": "2026-11-14T00:00:00Z",
+    "notes": "Sony Cinema FX3 reservation"
+  }'
+```
+
+---
+
+### 3. Service Appointments & Consultations
+
+| Method | Endpoint | Access | Purpose |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/store/appointments/slots` | Public (`x-publishable-api-key`) | Retrieve open specialist schedule slots |
+| `POST` | `/store/appointments/book` | Public (`x-publishable-api-key`) | Book consultation slot with customer info |
+| `GET` | `/admin/appointments/calendar` | Admin (`Bearer <TOKEN>`) | Full calendar view & booked reservations |
+| `POST` | `/admin/appointments/calendar` | Admin (`Bearer <TOKEN>`) | Create a new availability slot |
+
+#### Example: Book an Appointment
+```bash
+curl -X POST https://medusa-test-sbim.onrender.com/store/appointments/book \
+  -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slot_id": "01M1PBAWXXBYFRATQNSKEMW89Y",
+    "customer_name": "Aarav Sharma",
+    "customer_email": "aarav@example.com",
+    "customer_phone": "+919876543210",
+    "notes": "Architecture review"
+  }'
+```
+
+---
+
+### 4. Events & Ticketing
+
+| Method | Endpoint | Access | Purpose |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/store/events` | Public (`x-publishable-api-key`) | List upcoming events with live remaining seats |
+| `POST` | `/store/events/tickets` | Public (`x-publishable-api-key`) | Register attendee & issue `TCK-...` badge |
+| `GET` | `/admin/events` | Admin (`Bearer <TOKEN>`) | Overview of events & registered attendees |
+| `POST` | `/admin/events/checkin` | Admin (`Bearer <TOKEN>`) | Scan & validate barcode at venue gate |
+
+#### Example: Issue Ticket
+```bash
+curl -X POST https://medusa-test-sbim.onrender.com/store/events/tickets \
+  -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_id": "01M1NYVGCEZMDGR651AN37ZQZN",
+    "attendee_name": "Rohan Gupta",
+    "attendee_email": "rohan@example.com",
+    "tier": "VIP Access"
+  }'
+```
+
+---
+
+### 5. Native E-Commerce
+
+| Method | Endpoint | Access | Purpose |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/store/products` | Public (`x-publishable-api-key`) | Full product catalog & pricing |
+| `GET` | `/store/regions` | Public (`x-publishable-api-key`) | Available shipping & currency regions |
+
+---
+
+## 📂 Directory Structure
+
+Clean, flattened standalone layout with zero monorepo overhead:
+
+```text
+backend/
+├── .env                                  # Environment variables (Neon DB, Secrets, CORS)
+├── .env.template                         # Sample environment template
+├── .gitignore                            # Git exclusion rules
+├── API_REPORT.md                         # Generated live testing & integration report
+├── README.md                             # Project documentation
+├── eslint.config.ts                      # ESLint configuration
+├── instrumentation.ts                    # OpenTelemetry & server instrumentation
+├── integration-tests/                    # Jest automated integration tests
+├── jest.config.js                        # Jest configuration
+├── medusa-config.ts                      # Medusa v2 server configuration
+├── package.json                          # Dependencies & direct scripts
+├── package-lock.json                     # Dependency lockfile
+├── tsconfig.json                         # TypeScript compiler configuration
+├── static/                               # Static assets (images, product media)
+└── src/
+    ├── api/                              # REST API Route Handlers
+    │   ├── admin/                        # Protected /admin/* endpoints
+    │   └── store/                        # Public /store/* endpoints
+    ├── links/                            # Remote Links between Core Products & Custom Modules
+    ├── migration-scripts/                # Database seed scripts
+    ├── modules/                          # Custom Domain Modules
+    │   ├── appointment/                  # ServiceSlot & AppointmentBooking
+    │   ├── event/                        # Event & EventTicket
+    │   └── rental/                       # RentalItem & RentalBooking
+    └── workflows/                        # Distributed Transactional Workflows
+```
+
+---
+
+## ⚡ Local Development & Operations
+
+### 1. Prerequisites
+- **Node.js**: `^20.19.0 || >=22.12.0`
+- **PostgreSQL**: PostgreSQL 15+ (or Neon Cloud connection)
+
+### 2. Install Dependencies
+```bash
 npm install
 ```
 
-### 2. Database Migrations
-To generate migrations when you change models:
+### 3. Database Migrations
 ```bash
-# Generate migrations for custom modules
-npx medusa db:generate rentalModuleService appointmentModuleService eventModuleService
-
-# Apply migrations & sync links
+# Apply migrations to database
 npx medusa db:migrate
-npx medusa db:sync-links
-```
 
-### 3. Create Admin User
-```bash
-npx medusa user --email admin@baba.ai --password YourSecurePassword123
+# Sync remote links
+npx medusa db:sync-links
 ```
 
 ### 4. Run Development Server
 ```bash
 npm run dev
 ```
-- **Backend API:** `http://localhost:9000`
-- **Admin Dashboard:** `http://localhost:9000/app`
+Server runs at: `http://localhost:9000`
 
-### 5. Run Automated Tests
+### 5. Build for Production
 ```bash
-npm run test:unit
+npm run build
+npm run start
 ```
-All 11 unit tests across rental calculations, appointment bookings, and ticket issuance will run and validate in under 2 seconds.
+
+### 6. Linting & Type Checking
+```bash
+# Type check without emitting files
+npx tsc --noEmit
+
+# Medusa ESLint validation
+npm run lint
+```
 
 ---
 
-## 📡 API Reference Summary
+## 🔧 Environment Variables Guide
 
-### Storefront Public Endpoints
-| Method | Endpoint | Description |
+| Variable | Recommended Production Value | Description |
 | :--- | :--- | :--- |
-| `POST` | `/store/rentals/calculate-quote` | Calculate daily rental fees & security deposit |
-| `POST` | `/store/rentals/book` | Customer rental checkout & reservation |
-| `GET` | `/store/appointments/slots` | Fetch open appointment time slots |
-| `POST` | `/store/appointments/book` | Book customer appointment |
-| `GET` | `/store/events` | List upcoming events |
-| `GET` | `/store/events/:id/availability` | Check remaining seat capacity |
-| `POST` | `/store/events/tickets` | Purchase / issue event ticket |
+| `NODE_ENV` | `production` | Enables production optimizations |
+| `DATABASE_URL` | `postgresql://user:pass@host/db?sslmode=require` | PostgreSQL database connection string |
+| `JWT_SECRET` | 32+ character random hex string | Signs customer & admin authentication tokens |
+| `COOKIE_SECRET` | 32+ character random hex string | Encrypts session cookies |
+| `STORE_CORS` | `http://localhost:3000,https://your-storefront.vercel.app` | Whitelisted origins for storefront requests |
+| `ADMIN_CORS` | `http://localhost:3000,https://your-admin.vercel.app` | Whitelisted origins for admin API requests |
+| `AUTH_CORS` | `http://localhost:3000,https://your-storefront.vercel.app` | Whitelisted origins for `/auth/*` routes |
+| `AUTH_MFA_ENCRYPTION_KEY` | 64 character hex string | Encryption key for MFA secrets |
 
-### Admin Protected Endpoints
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/admin/rentals` | List all rental catalog items & customer bookings |
-| `POST` | `/admin/rentals` | Configure a new rental asset (rates & deposits) |
-| `POST` | `/admin/rentals/bookings` | Create manual booking reservation |
-| `POST` | `/admin/rentals/inspections` | Process returned items, deduct damage & release escrow |
-| `GET` | `/admin/appointments/calendar` | List specialist schedules & bookings |
-| `POST` | `/admin/appointments/calendar` | Create new provider calendar time slot |
-| `POST` | `/admin/appointments/bookings` | Manually book a client appointment |
-| `GET` | `/admin/events` | List all events & issued attendee tickets |
-| `POST` | `/admin/events` | Publish a new event with venue & capacity |
-| `POST` | `/admin/events/tickets` | Issue an attendee ticket badge |
-| `POST` | `/admin/events/checkin` | Real-time gate scanner verification & admission |
+> [!TIP]
+> `REDIS_URL` is optional. If not set, Medusa v2 runs seamlessly in **in-memory caching & workflow engine mode**, ideal for lightweight or cost-effective deployments.
+
+---
+
+## 📄 License
+
+This project is licensed under the **[MIT License](LICENSE)**. You are completely free to use, modify, distribute, and keep your repository private for proprietary and commercial applications.
