@@ -1,3 +1,7 @@
 [variables]
 NODE_OPTIONS = "--max-old-space-size=4096"
 NIXPACKS_NODE_VERSION = "20"
+
+# Railway defaults to `npm ci`, which fails if lockfile is even slightly stale.
+[phases.install]
+cmds = ["npm install --include=dev"]
