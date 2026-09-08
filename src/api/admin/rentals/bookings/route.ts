@@ -1,24 +1,32 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { z } from "zod"
+import { fail, parseBody } from "../../../_helpers/http"
 import { RENTAL_MODULE } from "../../../../modules/rental"
 import RentalModuleService from "../../../../modules/rental/service"
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const rentalService: RentalModuleService = req.scope.resolve(RENTAL_MODULE)
-  const body = req.body as {
-    itemId: string
-    startDate: string
-    endDate: string
-    customerNotes?: string
-  }
+const createBookingSchema = z.object({
+  itemId: z.string().min(1, "itemId is required"),
+  startDate: z.string().min(1, "startDate is required"),
+  endDate: z.string().min(1, "endDate is required"),
+  customerNotes: z.string().optional(),
+})
 
-  if (!body.itemId || !body.startDate || !body.endDate) {
-    res.status(400).json({ message: "itemId, startDate, and endDate are required." })
+export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const body = parseBody(createBookingSchema, req.body, res)
+  if (!body) {
     return
   }
+
+  const rentalService: RentalModuleService = req.scope.resolve(RENTAL_MODULE)
 
   try {
     const start = new Date(body.startDate)
     const end = new Date(body.endDate)
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      res.status(400).json({ message: "endDate must be after startDate." })
+      return
+    }
 
     const isAvailable = await rentalService.checkAvailability(body.itemId, start, end)
     if (!isAvailable) {
@@ -40,7 +48,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     })
 
     res.json({ success: true, booking })
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message || "Failed to create booking" })
+  } catch (err) {
+    fail(res, err, "Failed to create booking")
   }
 }

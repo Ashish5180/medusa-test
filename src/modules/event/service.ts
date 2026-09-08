@@ -111,6 +111,30 @@ class EventModuleService extends MedusaService({
       message: "Check-in successful! Welcome to the event.",
     }
   }
+
+  async cancelTicket(ticketId: string) {
+    const ticket = await this.retrieveEventTicket(ticketId)
+    if (ticket.status === "cancelled") {
+      return ticket
+    }
+
+    const updated = await this.updateEventTickets({
+      id: ticketId,
+      status: "cancelled",
+    })
+
+    if (ticket.status === "valid") {
+      const event = await this.retrieveEvent(ticket.event_id)
+      const nextIssued = Math.max(0, Number(event.tickets_issued) - 1)
+      await this.updateEvents({
+        id: event.id,
+        tickets_issued: nextIssued,
+        status: event.status === "sold_out" ? "published" : event.status,
+      })
+    }
+
+    return updated
+  }
 }
 
 export default EventModuleService
