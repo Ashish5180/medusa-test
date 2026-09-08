@@ -3,6 +3,6 @@ builder = "NIXPACKS"
 buildCommand = "npm install --include=dev && npm run build:railway"
 
 [deploy]
-startCommand = "npx medusa start"
+startCommand = "npm run start"
 healthcheckPath = "/health"
 restartPolicyType = "ON_FAILURE"

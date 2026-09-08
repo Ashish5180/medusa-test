@@ -10,8 +10,8 @@
   "scripts": {
     "build": "medusa build",
     "build:render": "medusa build && medusa db:migrate",
-    "build:railway": "medusa build && node scripts/assert-admin-build.cjs && medusa db:migrate",
-    "start": "medusa start",
+    "build:railway": "medusa build && node scripts/assert-admin-build.cjs && node scripts/sync-admin-public.cjs && medusa db:migrate",
+    "start": "node scripts/start-production.cjs",
     "dev": "medusa develop",
     "lint": "medusa lint",
     "seed": "medusa exec ./src/migration-scripts/initial-data-seed.ts",
