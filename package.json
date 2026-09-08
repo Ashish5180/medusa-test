@@ -19,6 +19,7 @@
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
   },
   "dependencies": {
+    "@medusajs/admin-sdk": "2.20.1",
     "@medusajs/caching": "2.20.1",
     "@medusajs/cli": "2.20.1",
     "@medusajs/draft-order": "2.20.1",

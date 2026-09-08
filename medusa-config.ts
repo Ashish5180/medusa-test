@@ -4,7 +4,11 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 module.exports = defineConfig({
   admin: {
-    disable: true,
+    // Official dashboard only. Do not put custom widgets in src/admin — that mixes
+    // Medusa's UI with our seller panel. APIs stay on /admin; this UI is /app.
+    disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
+    path: "/app",
+    backendUrl: process.env.MEDUSA_BACKEND_URL,
   },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
