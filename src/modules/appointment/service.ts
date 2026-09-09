@@ -70,6 +70,7 @@ class AppointmentModuleService extends MedusaService({
       customer_phone: bookingData.customer_phone,
       notes: bookingData.notes,
       status: bookingData.status || "pending",
+      vendor_id: slot.vendor_id || null,
     })
 
     await this.updateServiceSlots({

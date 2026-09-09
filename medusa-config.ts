@@ -38,6 +38,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/event",
     },
+    {
+      resolve: "./src/modules/vendor",
+    },
     ...(process.env.STRIPE_API_KEY
       ? [
           {

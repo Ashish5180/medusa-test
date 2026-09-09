@@ -18,6 +18,7 @@ export const AppointmentBooking = model.define("appointment_booking", {
     "no_show",
   ]).default("pending"),
   notes: model.text().nullable(),
+  vendor_id: model.text().nullable(),
 })
 
 export default AppointmentBooking

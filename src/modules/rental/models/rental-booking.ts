@@ -30,6 +30,7 @@ export const RentalBooking = model.define("rental_booking", {
   condition_on_return: model.text().nullable(),
   damage_fee: model.number().default(0),
   notes: model.text().nullable(),
+  vendor_id: model.text().nullable(),
 })
 
 export default RentalBooking

@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "zod"
 import { fail, parseBody } from "../../_helpers/http"
+import { resolveTenant, vendorScope } from "../../../lib/tenant"
 import { ensureRentalCatalogProduct } from "../../../lib/vertical-catalog"
 import { RENTAL_MODULE } from "../../../modules/rental"
 import RentalModuleService from "../../../modules/rental/service"
@@ -16,9 +17,10 @@ const createRentalItemSchema = z.object({
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const rentalService: RentalModuleService = req.scope.resolve(RENTAL_MODULE)
+  const scope = vendorScope(await resolveTenant(req))
 
-  const items = await rentalService.listRentalItems({}, { order: { created_at: "DESC" } })
-  const bookings = await rentalService.listRentalBookings({}, { order: { created_at: "DESC" } })
+  const items = await rentalService.listRentalItems(scope, { order: { created_at: "DESC" } })
+  const bookings = await rentalService.listRentalBookings(scope, { order: { created_at: "DESC" } })
 
   res.json({
     items,
@@ -33,6 +35,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const rentalService: RentalModuleService = req.scope.resolve(RENTAL_MODULE)
+  const tenant = await resolveTenant(req)
 
   try {
     const item = await rentalService.createRentalItems({
@@ -42,6 +45,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       max_rental_days: body.max_rental_days || 5,
       condition_grade: body.condition_grade || "Excellent",
       is_active: body.is_active !== undefined ? body.is_active : true,
+      vendor_id: tenant.vendor?.id || null,
     })
 
     await ensureRentalCatalogProduct(req.scope, item)

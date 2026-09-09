@@ -16,6 +16,7 @@ export type CreateServiceSlotInput = {
   slotStart: string
   slotEnd: string
   maxCapacity?: number
+  vendorId?: string
 }
 
 export const createServiceSlotStep = createStep(
@@ -35,6 +36,7 @@ export const createServiceSlotStep = createStep(
       max_capacity: input.maxCapacity || 1,
       booked_count: 0,
       is_blocked: false,
+      vendor_id: input.vendorId || null,
     })
 
     if (productId && productId !== "srv_general") {

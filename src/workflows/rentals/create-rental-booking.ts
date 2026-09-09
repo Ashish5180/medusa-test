@@ -73,6 +73,7 @@ export const createRentalBookingRecordStep = createStep(
     { container }
   ) => {
     const rentalService: RentalModuleService = container.resolve(RENTAL_MODULE)
+    const item = await rentalService.retrieveRentalItem(input.itemId)
 
     const booking = await rentalService.createRentalBookings({
       item_id: input.itemId,
@@ -86,6 +87,7 @@ export const createRentalBookingRecordStep = createStep(
       customer_id: input.customerId,
       cart_id: input.cartId,
       notes: input.notes,
+      vendor_id: item.vendor_id || null,
     })
 
     return new StepResponse(booking, booking.id)

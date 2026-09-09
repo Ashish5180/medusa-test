@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "zod"
 import { fail, parseBody } from "../../../_helpers/http"
+import { resolveTenant, vendorScope } from "../../../../lib/tenant"
 import { APPOINTMENT_MODULE } from "../../../../modules/appointment"
 import AppointmentModuleService from "../../../../modules/appointment/service"
 import createServiceSlotWorkflow from "../../../../workflows/appointments/create-service-slot"
@@ -17,9 +18,10 @@ const createSlotSchema = z.object({
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const appointmentService: AppointmentModuleService =
     req.scope.resolve(APPOINTMENT_MODULE)
+  const scope = vendorScope(await resolveTenant(req))
 
-  const bookings = await appointmentService.listAppointmentBookings({}, { order: { created_at: "DESC" } })
-  const slots = await appointmentService.listServiceSlots({}, { order: { slot_start: "ASC" } })
+  const bookings = await appointmentService.listAppointmentBookings(scope, { order: { created_at: "DESC" } })
+  const slots = await appointmentService.listServiceSlots(scope, { order: { slot_start: "ASC" } })
 
   res.json({
     bookings,
@@ -41,6 +43,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const serviceId = body.product_id || body.service_id || "srv_general"
+  const tenant = await resolveTenant(req)
 
   try {
     const { result } = await createServiceSlotWorkflow(req.scope).run({
@@ -51,6 +54,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         slotStart: body.slot_start,
         slotEnd: body.slot_end,
         maxCapacity: body.max_capacity || 1,
+        vendorId: tenant.vendor?.id,
       },
     })
 

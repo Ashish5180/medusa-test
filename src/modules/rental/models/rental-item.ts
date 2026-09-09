@@ -8,6 +8,7 @@ export const RentalItem = model.define("rental_item", {
   max_rental_days: model.number().default(5),
   condition_grade: model.text().default("Excellent"),
   is_active: model.boolean().default(true),
+  vendor_id: model.text().nullable(),
 })
 
 export default RentalItem

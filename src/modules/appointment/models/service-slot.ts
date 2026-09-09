@@ -11,6 +11,7 @@ export const ServiceSlot = model.define("service_slot", {
   max_capacity: model.number().default(1),
   booked_count: model.number().default(0),
   is_blocked: model.boolean().default(false),
+  vendor_id: model.text().nullable(),
 })
 
 export default ServiceSlot
