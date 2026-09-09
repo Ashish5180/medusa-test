@@ -18,7 +18,7 @@ export default async function rentalOverdue(container: MedusaContainer) {
     }
 
     const item = await rentalService.retrieveRentalItem(booking.item_id)
-    const lateFee = rentalService.calculateLateFee(item, new Date(booking.end_date), now)
+    const lateFee = await rentalService.calculateLateFee(item, new Date(booking.end_date), now)
     await rentalService.markOverdue(booking.id, lateFee)
 
     const to = await orderEmail(container, booking.order_id)

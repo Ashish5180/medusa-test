@@ -125,7 +125,11 @@ class RentalModuleService extends MedusaService({
     }
   }
 
-  calculateLateFee(item: { late_fee_per_day?: number }, endDate: Date, asOf = new Date()) {
+  async calculateLateFee(
+    item: { late_fee_per_day?: number },
+    endDate: Date,
+    asOf = new Date()
+  ): Promise<number> {
     if (asOf <= endDate) {
       return 0
     }
