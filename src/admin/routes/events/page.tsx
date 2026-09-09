@@ -21,6 +21,8 @@ type Ticket = {
   event_id?: string
   attendee_name?: string
   ticket_code?: string
+  qr_payload?: string
+  order_id?: string
   ticket_tier?: string
   status?: string
 }
@@ -49,7 +51,7 @@ const EventsPage = () => {
       <div className="px-6 py-4">
         <Heading>Events</Heading>
         <Text size="small" className="text-ui-fg-subtle">
-          Custom event module. Create the event, then issue tickets against remaining capacity.
+          Each event is a catalog product (type: event). A mixed cart checkout issues a QR ticket automatically. Walk-in issue still works at the door.
         </Text>
       </div>
       <ModuleSection<EventItem>
@@ -100,6 +102,8 @@ const EventsPage = () => {
           },
           { header: "Attendee", cell: (row) => row.attendee_name || "—" },
           { header: "Code", cell: (row) => row.ticket_code || "—" },
+          { header: "QR", cell: (row) => row.qr_payload || row.ticket_code || "—" },
+          { header: "Order", cell: (row) => row.order_id?.slice(-8) || "—" },
           { header: "Tier", cell: (row) => row.ticket_tier || "—" },
           { header: "Status", cell: (row) => row.status || "—" },
         ]}

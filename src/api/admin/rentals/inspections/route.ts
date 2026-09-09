@@ -7,6 +7,7 @@ const schema = z.object({
   bookingId: z.string().min(1, "bookingId is required"),
   conditionOnReturn: z.string().min(1, "conditionOnReturn is required"),
   damageFee: z.coerce.number().min(0).optional(),
+  lateFee: z.coerce.number().min(0).optional(),
 })
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
@@ -21,6 +22,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         bookingId: body.bookingId,
         conditionOnReturn: body.conditionOnReturn,
         damageFee: body.damageFee || 0,
+        lateFee: body.lateFee || 0,
       },
     })
 

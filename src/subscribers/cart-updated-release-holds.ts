@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { APPOINTMENT_MODULE } from "../modules/appointment"
 import AppointmentModuleService from "../modules/appointment/service"
+import { releaseRentalInventory } from "../lib/rental-inventory"
 import { RENTAL_MODULE } from "../modules/rental"
 import RentalModuleService from "../modules/rental/service"
 
@@ -50,6 +51,7 @@ export default async function cartUpdatedReleaseHolds({
   })
   for (const booking of reserved) {
     if (!liveBookingIds.has(booking.id)) {
+      await releaseRentalInventory(container, booking.id)
       await rentalService.cancelRental(booking.id)
     }
   }

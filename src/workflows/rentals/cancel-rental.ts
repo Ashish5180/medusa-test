@@ -6,6 +6,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { orderHasCapturedPayment, voidOrderPayment } from "../../lib/order-payment"
+import { releaseRentalInventory } from "../../lib/rental-inventory"
 import { APPOINTMENT_MODULE } from "../../modules/appointment"
 import AppointmentModuleService from "../../modules/appointment/service"
 import { RENTAL_MODULE } from "../../modules/rental"
@@ -35,6 +36,7 @@ const cancelRentalAndOrderStep = createStep(
       )
     }
 
+    await releaseRentalInventory(container, input.bookingId)
     const cancelled = await rentalService.cancelRental(input.bookingId)
 
     if (booking.order_id) {

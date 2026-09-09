@@ -29,11 +29,15 @@ const addRentalLinesStep = createStep(
       bookingId: string
       rentalFee: number
       depositAmount: number
+      days?: number
+      dailyRate?: number
     },
     { container }
   ) => {
     const product = await getProductForRentalItem(container, input.itemId)
     const variantId = firstVariantId(product)
+    const rentalService: RentalModuleService = container.resolve(RENTAL_MODULE)
+    const rentalItem = await rentalService.retrieveRentalItem(input.itemId)
 
     await addToCartWorkflow(container).run({
       input: {
@@ -47,11 +51,19 @@ const addRentalLinesStep = createStep(
             title: `${product.title} · rental fee`,
             metadata: {
               vertical: VERTICAL.RENTAL,
+              type: "rental",
               kind: RENTAL_LINE_KIND.FEE,
+              refundable: false,
               booking_id: input.bookingId,
               item_id: input.itemId,
               start_date: input.startDate,
               end_date: input.endDate,
+              rental_days: input.days,
+              daily_rate: input.dailyRate,
+              rental_start_date: input.startDate,
+              rental_end_date: input.endDate,
+              security_deposit_price: input.depositAmount,
+              late_fee_rate: rentalItem.late_fee_per_day ?? 0,
               amount_cents: input.rentalFee,
             },
           },
@@ -64,6 +76,7 @@ const addRentalLinesStep = createStep(
             metadata: {
               vertical: VERTICAL.RENTAL,
               kind: RENTAL_LINE_KIND.DEPOSIT,
+              refundable: true,
               booking_id: input.bookingId,
               item_id: input.itemId,
               start_date: input.startDate,
@@ -104,7 +117,6 @@ const addRentalLinesStep = createStep(
       )
     }
 
-    const rentalService: RentalModuleService = container.resolve(RENTAL_MODULE)
     await rentalService.updateRentalBookings({
       id: input.bookingId,
       fee_line_item_id: feeLine.id,
@@ -143,6 +155,8 @@ export const addRentalToCartWorkflow = createWorkflow(
       bookingId: data.created.booking.id,
       rentalFee: data.created.quote.rentalFee,
       depositAmount: data.created.quote.depositAmount,
+      days: data.created.quote.days,
+      dailyRate: data.created.quote.dailyRate,
     }))
 
     const lines = addRentalLinesStep(lineInput)

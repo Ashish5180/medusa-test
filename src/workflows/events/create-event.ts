@@ -4,6 +4,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { ensureEventCatalogProduct } from "../../lib/vertical-catalog"
 import { EVENT_MODULE } from "../../modules/event"
 import EventModuleService from "../../modules/event/service"
 
@@ -31,6 +32,8 @@ export const createEventStep = createStep(
       tickets_issued: 0,
       status: "published",
     })
+
+    await ensureEventCatalogProduct(container, event)
 
     return new StepResponse(event, event.id)
   },

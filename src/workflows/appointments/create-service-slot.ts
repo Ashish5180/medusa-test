@@ -5,6 +5,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ensureAppointmentCatalogProduct } from "../../lib/vertical-catalog"
 import { APPOINTMENT_MODULE } from "../../modules/appointment"
 import AppointmentModuleService from "../../modules/appointment/service"
 
@@ -39,19 +40,19 @@ export const createServiceSlotStep = createStep(
       vendor_id: input.vendorId || null,
     })
 
-    if (productId && productId !== "srv_general") {
-      try {
-        const link = container.resolve(ContainerRegistrationKeys.LINK)
-        await link.create({
-          [Modules.PRODUCT]: { product_id: productId },
-          [APPOINTMENT_MODULE]: { service_slot_id: slot.id },
-        })
-      } catch {
-        // Slot still works; cart add will fail until a real product is linked.
-      }
+    const catalog = await ensureAppointmentCatalogProduct(container, slot)
+    if (catalog.id !== slot.product_id) {
+      await appointmentService.updateServiceSlots({
+        id: slot.id,
+        product_id: catalog.id,
+        service_id: catalog.id,
+      })
     }
 
-    return new StepResponse(slot, { slotId: slot.id, productId })
+    return new StepResponse(
+      { ...slot, product_id: catalog.id, service_id: catalog.id },
+      { slotId: slot.id, productId: catalog.id }
+    )
   },
   async (compensate: { slotId?: string; productId?: string } | undefined, { container }) => {
     if (!compensate?.slotId) return

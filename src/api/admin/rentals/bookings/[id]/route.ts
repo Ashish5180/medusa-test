@@ -15,6 +15,7 @@ const updateBookingSchema = z.object({
   condition_on_pickup: z.string().optional(),
   condition_on_return: z.string().optional(),
   damage_fee: z.coerce.number().min(0).optional(),
+  late_fee: z.coerce.number().min(0).optional(),
 })
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
@@ -44,15 +45,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
 
     if (body.rental_status === "returned") {
-      if (!body.condition_on_return) {
-        res.status(400).json({ message: "condition_on_return is required when marking a rental returned." })
-        return
-      }
       const { result } = await completeRentalWorkflow(req.scope).run({
         input: {
           bookingId: req.params.id,
-          conditionOnReturn: body.condition_on_return,
+          conditionOnReturn: body.condition_on_return || "Good",
           damageFee: body.damage_fee || 0,
+          lateFee: body.late_fee || 0,
         },
       })
       res.json({ success: true, ...result })

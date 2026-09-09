@@ -8,8 +8,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     is_active: true,
   })
 
+  const withCalendar = await Promise.all(
+    items.map(async (item) => ({
+      ...item,
+      security_deposit_amount: item.deposit_amount,
+      blocked_dates: await rentalService.listBlockedDates(item.id),
+    }))
+  )
+
   res.json({
-    items,
+    items: withCalendar,
   })
 }
 

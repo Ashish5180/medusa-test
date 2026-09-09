@@ -5,6 +5,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { reserveRentalInventory } from "../../lib/rental-inventory"
 import { RENTAL_MODULE } from "../../modules/rental"
 import RentalModuleService from "../../modules/rental/service"
 
@@ -83,12 +84,19 @@ export const createRentalBookingRecordStep = createStep(
       deposit_amount: input.depositAmount,
       deposit_status: "pending",
       rental_status: "reserved",
+      return_status: "pending",
       order_id: input.orderId,
       customer_id: input.customerId,
       cart_id: input.cartId,
       notes: input.notes,
       vendor_id: item.vendor_id || null,
     })
+
+    try {
+      await reserveRentalInventory(container, booking.id)
+    } catch {
+      // Date overlap already blocked the booking; inventory is best-effort.
+    }
 
     return new StepResponse(booking, booking.id)
   },

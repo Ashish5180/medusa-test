@@ -50,7 +50,7 @@ const AppointmentsPage = () => {
       <div className="px-6 py-4">
         <Heading>Appointments</Heading>
         <Text size="small" className="text-ui-fg-subtle">
-          Custom appointment module. Open a slot first, then book a customer onto it.
+          Each slot is a catalog product (type: booking). Customers add it to the same cart as physical, rental, and event lines. Checkout locks the calendar.
         </Text>
       </div>
       <ModuleSection<Slot>

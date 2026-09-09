@@ -1,7 +1,14 @@
-import type { MedusaRequest } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaRequest,
+} from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { VENDOR_MODULE } from "../modules/vendor"
 import VendorModuleService from "../modules/vendor/service"
+
+function actorIdFromRequest(req: MedusaRequest): string | undefined {
+  return (req as AuthenticatedMedusaRequest).auth_context?.actor_id
+}
 
 export type Tenant = {
   userId: string
@@ -11,7 +18,7 @@ export type Tenant = {
 }
 
 export async function resolveTenant(req: MedusaRequest): Promise<Tenant> {
-  const userId = req.auth_context?.actor_id
+  const userId = actorIdFromRequest(req)
   if (!userId) {
     throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Not authenticated.")
   }

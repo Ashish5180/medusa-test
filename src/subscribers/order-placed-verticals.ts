@@ -16,6 +16,7 @@ export default async function orderPlacedVerticals({
       "cart.id",
       "customer_id",
       "items.id",
+      "items.quantity",
       "items.metadata",
     ],
     filters: { id: data.id },

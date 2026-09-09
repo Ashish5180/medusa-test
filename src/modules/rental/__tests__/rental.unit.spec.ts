@@ -27,6 +27,31 @@ describe("RentalModuleService Unit Tests", () => {
     expect(quote.rentalFee).toBe(225) // 3 * 75
     expect(quote.depositAmount).toBe(300)
     expect(quote.totalDueAtCheckout).toBe(525) // 225 + 300
+    expect(quote.securityDepositAmount).toBe(300)
+    expect(quote.durationType).toBe("daily")
+  })
+
+  test("calculateQuote uses hourly rate × hours when duration type is hourly", async () => {
+    jest.spyOn(service, "retrieveRentalItem").mockResolvedValue({
+      id: "rent_camera_1",
+      daily_rate: 2400,
+      hourly_rate: 100,
+      rental_duration_type: "hourly",
+      deposit_amount: 300,
+      min_rental_days: 1,
+      minimum_rental_period: 2,
+      max_rental_days: 5,
+    } as any)
+
+    const quote = await service.calculateQuote(
+      "rent_camera_1",
+      new Date("2026-10-01T10:00:00Z"),
+      new Date("2026-10-01T14:00:00Z")
+    )
+
+    expect(quote.hours).toBe(4)
+    expect(quote.periods).toBe(4)
+    expect(quote.rentalFee).toBe(400)
   })
 
   test("calculateQuote rejects rentals longer than max_rental_days", async () => {
@@ -81,5 +106,24 @@ describe("RentalModuleService Unit Tests", () => {
 
     expect(result.depositRefundable).toBe(200)
     expect(result.damageFeeDeducted).toBe(100)
+  })
+
+  test("processReturnInspection stacks late fee on top of damage", async () => {
+    jest.spyOn(service, "retrieveRentalBooking").mockResolvedValue({
+      id: "bk_125",
+      deposit_amount: 300,
+    } as any)
+
+    jest.spyOn(service, "updateRentalBookings").mockResolvedValue({
+      id: "bk_125",
+      rental_status: "returned",
+      return_status: "damaged",
+      deposit_status: "partially_refunded",
+    } as any)
+
+    const result = await service.processReturnInspection("bk_125", "Late and scratched", 50, 80)
+
+    expect(result.lateFeeDeducted).toBe(80)
+    expect(result.depositRefundable).toBe(170)
   })
 })

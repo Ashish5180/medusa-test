@@ -30,6 +30,7 @@ type ModuleSectionProps<T extends { id: string }> = {
   toCreate: (values: Record<string, string>) => unknown
   deletePath?: (row: T) => string
   emptyCreate?: Record<string, string>
+  rowActions?: (row: T, helpers: { refresh: () => void }) => ReactNode
 }
 
 export function ModuleSection<T extends { id: string }>({
@@ -45,6 +46,7 @@ export function ModuleSection<T extends { id: string }>({
   toCreate,
   deletePath,
   emptyCreate,
+  rowActions,
 }: ModuleSectionProps<T>) {
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({
@@ -156,7 +158,7 @@ export function ModuleSection<T extends { id: string }>({
                 {columns.map((column) => (
                   <Table.HeaderCell key={column.header}>{column.header}</Table.HeaderCell>
                 ))}
-                {deletePath ? <Table.HeaderCell>Actions</Table.HeaderCell> : null}
+                {deletePath || rowActions ? <Table.HeaderCell>Actions</Table.HeaderCell> : null}
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -165,15 +167,26 @@ export function ModuleSection<T extends { id: string }>({
                   {columns.map((column) => (
                     <Table.Cell key={column.header}>{column.cell(row)}</Table.Cell>
                   ))}
-                  {deletePath ? (
+                  {deletePath || rowActions ? (
                     <Table.Cell>
-                      <Button
-                        variant="transparent"
-                        size="small"
-                        onClick={() => deleteMutation.mutate(deletePath(row))}
-                      >
-                        Delete
-                      </Button>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {rowActions
+                          ? rowActions(row, {
+                              refresh: () => {
+                                void queryClient.invalidateQueries({ queryKey })
+                              },
+                            })
+                          : null}
+                        {deletePath ? (
+                          <Button
+                            variant="transparent"
+                            size="small"
+                            onClick={() => deleteMutation.mutate(deletePath(row))}
+                          >
+                            Delete
+                          </Button>
+                        ) : null}
+                      </div>
                     </Table.Cell>
                   ) : null}
                 </Table.Row>

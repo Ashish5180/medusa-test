@@ -8,6 +8,8 @@ import VendorModuleService from "../../../../modules/vendor/service"
 const updateVendorSchema = z.object({
   name: z.string().min(1).optional(),
   handle: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  commission_rate: z.coerce.number().min(0).max(100).optional(),
   is_active: z.boolean().optional(),
 })
 
@@ -48,6 +50,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.handle !== undefined
         ? { handle: body.handle.toLowerCase().replace(/\s+/g, "-") }
+        : {}),
+      ...(body.email !== undefined ? { email: body.email } : {}),
+      ...(body.commission_rate !== undefined
+        ? { commission_rate: body.commission_rate }
         : {}),
       ...(body.is_active !== undefined ? { is_active: body.is_active } : {}),
     })

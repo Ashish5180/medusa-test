@@ -1,4 +1,13 @@
-import { centsToAmount, rentalDayCount, VERTICAL, isRentalFeeLine } from "../commerce"
+import {
+  centsToAmount,
+  isEventLine,
+  isRentalFeeLine,
+  kindFromVertical,
+  PRODUCT_KIND,
+  rentalDayCount,
+  VERTICAL,
+  verticalFromKind,
+} from "../commerce"
 
 describe("commerce helpers", () => {
   test("centsToAmount converts stored cents to Medusa major units", () => {
@@ -22,5 +31,14 @@ describe("commerce helpers", () => {
     expect(
       isRentalFeeLine({ vertical: VERTICAL.RENTAL, kind: "deposit" })
     ).toBe(false)
+  })
+
+  test("kindFromVertical maps catalog types", () => {
+    expect(kindFromVertical(VERTICAL.RENTAL)).toBe(PRODUCT_KIND.RENTAL)
+    expect(kindFromVertical(VERTICAL.APPOINTMENT)).toBe(PRODUCT_KIND.BOOKING)
+    expect(kindFromVertical(VERTICAL.EVENT)).toBe(PRODUCT_KIND.EVENT)
+    expect(kindFromVertical(VERTICAL.RETAIL)).toBe(PRODUCT_KIND.PHYSICAL)
+    expect(verticalFromKind(PRODUCT_KIND.BOOKING)).toBe(VERTICAL.APPOINTMENT)
+    expect(isEventLine({ vertical: VERTICAL.EVENT, type: "event" })).toBe(true)
   })
 })

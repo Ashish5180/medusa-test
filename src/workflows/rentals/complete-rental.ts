@@ -6,6 +6,7 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { centsToAmount } from "../../lib/commerce"
 import { captureOrderAmount, refundOrderAmount } from "../../lib/order-payment"
+import { releaseRentalInventory } from "../../lib/rental-inventory"
 import { RENTAL_MODULE } from "../../modules/rental"
 import RentalModuleService from "../../modules/rental/service"
 
@@ -13,6 +14,7 @@ export type CompleteRentalInput = {
   bookingId: string
   conditionOnReturn: string
   damageFee?: number
+  lateFee?: number
 }
 
 const inspectRentalStep = createStep(
@@ -23,8 +25,10 @@ const inspectRentalStep = createStep(
     const result = await rentalService.processReturnInspection(
       input.bookingId,
       input.conditionOnReturn,
-      input.damageFee || 0
+      input.damageFee || 0,
+      input.lateFee || 0
     )
+    await releaseRentalInventory(container, input.bookingId)
     return new StepResponse(
       { ...result, previousStatus: previous.rental_status, previousDeposit: previous.deposit_status },
       {
@@ -66,6 +70,7 @@ const settleRentalDepositStep = createStep(
     input: {
       booking: { order_id?: string | null; deposit_amount?: number }
       damageFeeDeducted: number
+      lateFeeDeducted?: number
     },
     { container }
   ) => {
@@ -74,10 +79,10 @@ const settleRentalDepositStep = createStep(
       return new StepResponse({ skipped: true })
     }
 
-    const damage = Number(input.damageFeeDeducted || 0)
-    if (damage > 0) {
+    const charges = Number(input.damageFeeDeducted || 0) + Number(input.lateFeeDeducted || 0)
+    if (charges > 0) {
       return new StepResponse(
-        await captureOrderAmount(container, orderId, centsToAmount(damage))
+        await captureOrderAmount(container, orderId, centsToAmount(charges))
       )
     }
 
@@ -95,7 +100,7 @@ const settleRentalDepositStep = createStep(
       }
     }
 
-    return new StepResponse({ skipped: damage === 0 })
+    return new StepResponse({ skipped: charges === 0 })
   }
 )
 
@@ -106,6 +111,7 @@ export const completeRentalWorkflow = createWorkflow(
     settleRentalDepositStep({
       booking: inspection.booking,
       damageFeeDeducted: inspection.damageFeeDeducted,
+      lateFeeDeducted: inspection.lateFeeDeducted,
     })
     return new WorkflowResponse(inspection)
   }

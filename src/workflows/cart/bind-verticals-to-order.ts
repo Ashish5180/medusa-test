@@ -4,9 +4,11 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { isAppointmentLine, isRentalLine } from "../../lib/commerce"
+import { isAppointmentLine, isEventLine, isRentalLine } from "../../lib/commerce"
 import { APPOINTMENT_MODULE } from "../../modules/appointment"
 import AppointmentModuleService from "../../modules/appointment/service"
+import { EVENT_MODULE } from "../../modules/event"
+import EventModuleService from "../../modules/event/service"
 import { RENTAL_MODULE } from "../../modules/rental"
 import RentalModuleService from "../../modules/rental/service"
 
@@ -16,6 +18,7 @@ export type BindVerticalsToOrderInput = {
   customerId?: string | null
   items: Array<{
     id: string
+    quantity?: number
     metadata?: Record<string, unknown> | null
   }>
 }
@@ -26,11 +29,38 @@ const bindVerticalsStep = createStep(
     const appointmentService: AppointmentModuleService =
       container.resolve(APPOINTMENT_MODULE)
     const rentalService: RentalModuleService = container.resolve(RENTAL_MODULE)
+    const eventService: EventModuleService = container.resolve(EVENT_MODULE)
 
     const appointmentIds: string[] = []
     const rentalIds: string[] = []
+    const ticketIds: string[] = []
 
     for (const item of input.items) {
+      if (isEventLine(item.metadata) && typeof item.metadata?.event_id === "string") {
+        const quantity = Math.max(1, Number(item.quantity || 1))
+        const existing = await eventService.listEventTickets({
+          order_line_item_id: item.id,
+        })
+        for (const ticket of existing) {
+          ticketIds.push(ticket.id)
+        }
+        for (let issued = existing.length; issued < quantity; issued++) {
+          const ticket = await eventService.issueTicket(String(item.metadata.event_id), {
+            order_id: input.orderId,
+            order_line_item_id: item.id,
+            ticket_tier: String(item.metadata.ticket_type || "General Admission"),
+            attendee_name: item.metadata.attendee_name
+              ? String(item.metadata.attendee_name)
+              : undefined,
+            attendee_email: item.metadata.attendee_email
+              ? String(item.metadata.attendee_email)
+              : undefined,
+          })
+          ticketIds.push(ticket.id)
+        }
+        continue
+      }
+
       const bookingId = item.metadata?.booking_id
       if (typeof bookingId !== "string") continue
 
@@ -68,7 +98,7 @@ const bindVerticalsStep = createStep(
       }
     }
 
-    return new StepResponse({ appointmentIds, rentalIds })
+    return new StepResponse({ appointmentIds, rentalIds, ticketIds })
   }
 )
 

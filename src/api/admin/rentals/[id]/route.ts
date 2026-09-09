@@ -7,8 +7,12 @@ import RentalModuleService from "../../../../modules/rental/service"
 const updateRentalItemSchema = z.object({
   daily_rate: z.coerce.number().positive().optional(),
   deposit_amount: z.coerce.number().positive().optional(),
+  hourly_rate: z.coerce.number().min(0).optional(),
+  rental_duration_type: z.enum(["hourly", "daily"]).optional(),
   min_rental_days: z.coerce.number().int().positive().optional(),
   max_rental_days: z.coerce.number().int().positive().optional(),
+  minimum_rental_period: z.coerce.number().int().positive().optional(),
+  late_fee_per_day: z.coerce.number().min(0).optional(),
   condition_grade: z.string().optional(),
   is_active: z.boolean().optional(),
 })
@@ -43,8 +47,18 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       ...(body.deposit_amount !== undefined
         ? { deposit_amount: toCents(body.deposit_amount) }
         : {}),
+      ...(body.hourly_rate !== undefined ? { hourly_rate: toCents(body.hourly_rate) } : {}),
+      ...(body.rental_duration_type !== undefined
+        ? { rental_duration_type: body.rental_duration_type }
+        : {}),
       ...(body.min_rental_days !== undefined ? { min_rental_days: body.min_rental_days } : {}),
       ...(body.max_rental_days !== undefined ? { max_rental_days: body.max_rental_days } : {}),
+      ...(body.minimum_rental_period !== undefined
+        ? { minimum_rental_period: body.minimum_rental_period }
+        : {}),
+      ...(body.late_fee_per_day !== undefined
+        ? { late_fee_per_day: toCents(body.late_fee_per_day) }
+        : {}),
       ...(body.condition_grade !== undefined ? { condition_grade: body.condition_grade } : {}),
       ...(body.is_active !== undefined ? { is_active: body.is_active } : {}),
     })

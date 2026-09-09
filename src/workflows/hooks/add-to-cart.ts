@@ -1,6 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
-import { VERTICAL } from "../../lib/commerce"
+import { verticalFromKind, VERTICAL } from "../../lib/commerce"
 
 addToCartWorkflow.hooks.validate(async ({ input }, { container }) => {
   const variantIds = (input.items || [])
@@ -22,7 +22,11 @@ addToCartWorkflow.hooks.validate(async ({ input }, { container }) => {
 
   const verticalByVariant = new Map<string, string>()
   for (const variant of variants as Array<{ id: string; product?: { metadata?: Record<string, unknown> } }>) {
-    const vertical = variant.product?.metadata?.vertical
+    const type = variant.product?.metadata?.type
+    const vertical =
+      (typeof variant.product?.metadata?.vertical === "string" &&
+        variant.product.metadata.vertical) ||
+      (typeof type === "string" ? verticalFromKind(type) : undefined)
     if (typeof vertical === "string") {
       verticalByVariant.set(variant.id, vertical)
     }
@@ -34,12 +38,20 @@ addToCartWorkflow.hooks.validate(async ({ input }, { container }) => {
     const lineVertical = item.metadata?.vertical
 
     if (
-      (productVertical === VERTICAL.APPOINTMENT || productVertical === VERTICAL.RENTAL) &&
+      (productVertical === VERTICAL.APPOINTMENT ||
+        productVertical === VERTICAL.RENTAL ||
+        productVertical === VERTICAL.EVENT) &&
       lineVertical !== productVertical
     ) {
+      const path =
+        productVertical === VERTICAL.APPOINTMENT
+          ? "appointment"
+          : productVertical === VERTICAL.EVENT
+            ? "event"
+            : "rental"
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        `Product is a ${productVertical} listing. Add it with POST /store/carts/:id/line-items/${productVertical}.`
+        `Product is a ${productVertical} listing. Add it with POST /store/carts/:id/line-items/${path}.`
       )
     }
   }

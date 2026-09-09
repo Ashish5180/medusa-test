@@ -1,5 +1,6 @@
 import { MedusaContainer } from "@medusajs/framework"
 import { STALE_CART_HOLD_HOURS } from "../lib/commerce"
+import { releaseRentalInventory } from "../lib/rental-inventory"
 import { APPOINTMENT_MODULE } from "../modules/appointment"
 import AppointmentModuleService from "../modules/appointment/service"
 import { RENTAL_MODULE } from "../modules/rental"
@@ -26,6 +27,7 @@ export default async function releaseStaleCartHolds(container: MedusaContainer) 
   for (const booking of staleRentals) {
     if (booking.order_id || !booking.cart_id) continue
     if (new Date(booking.created_at).getTime() > cutoff.getTime()) continue
+    await releaseRentalInventory(container, booking.id)
     await rentalService.cancelRental(booking.id)
   }
 }

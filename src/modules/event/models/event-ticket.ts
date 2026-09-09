@@ -6,6 +6,7 @@ export const EventTicket = model.define("event_ticket", {
   order_id: model.text().nullable(),
   order_line_item_id: model.text().nullable(),
   ticket_code: model.text(),
+  qr_payload: model.text().nullable(),
   ticket_tier: model.text().default("General Admission"),
   attendee_name: model.text().nullable(),
   attendee_email: model.text().nullable(),

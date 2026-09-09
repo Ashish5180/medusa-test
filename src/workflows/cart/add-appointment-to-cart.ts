@@ -45,10 +45,21 @@ const addAppointmentLineStep = createStep(
             requires_shipping: false,
             metadata: {
               vertical: VERTICAL.APPOINTMENT,
+              type: "booking",
               slot_id: slot.id,
               booking_id: input.bookingId,
+              booking_slot_start: slot.slot_start,
+              booking_slot_end: slot.slot_end,
               slot_start: slot.slot_start,
               slot_end: slot.slot_end,
+              duration_minutes: Math.max(
+                1,
+                Math.round(
+                  (new Date(slot.slot_end).getTime() - new Date(slot.slot_start).getTime()) /
+                    60000
+                )
+              ),
+              max_capacity: slot.max_capacity,
             },
           },
         ],

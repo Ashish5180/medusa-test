@@ -49,6 +49,7 @@ class EventModuleService extends MedusaService({
       order_id: ticketData.order_id,
       order_line_item_id: ticketData.order_line_item_id,
       ticket_code: ticketCode,
+      qr_payload: ticketCode,
       ticket_tier: ticketData.ticket_tier || "General Admission",
       attendee_name: ticketData.attendee_name,
       attendee_email: ticketData.attendee_email,
