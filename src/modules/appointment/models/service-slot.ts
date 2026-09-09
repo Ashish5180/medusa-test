@@ -3,6 +3,7 @@ import { model } from "@medusajs/framework/utils"
 export const ServiceSlot = model.define("service_slot", {
   id: model.id().primaryKey(),
   service_id: model.text(),
+  product_id: model.text().nullable(),
   resource_id: model.text().nullable(),
   resource_name: model.text().default("General Staff"),
   slot_start: model.dateTime(),

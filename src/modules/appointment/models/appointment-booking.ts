@@ -5,6 +5,8 @@ export const AppointmentBooking = model.define("appointment_booking", {
   slot_id: model.text(),
   order_id: model.text().nullable(),
   customer_id: model.text().nullable(),
+  cart_id: model.text().nullable(),
+  line_item_id: model.text().nullable(),
   customer_name: model.text().nullable(),
   customer_email: model.text().nullable(),
   customer_phone: model.text().nullable(),

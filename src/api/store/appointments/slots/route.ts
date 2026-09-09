@@ -36,7 +36,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const body = req.body as {
-    serviceId: string
+    serviceId?: string
+    productId?: string
     resourceId?: string
     resourceName?: string
     slotStart: string
@@ -44,16 +45,21 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     maxCapacity?: number
   }
 
-  if (!body.serviceId || !body.slotStart || !body.slotEnd) {
+  const serviceId = body.productId || body.serviceId
+  if (!serviceId || !body.slotStart || !body.slotEnd) {
     res.status(400).json({
-      message: "serviceId, slotStart, and slotEnd are required.",
+      message: "serviceId (or productId), slotStart, and slotEnd are required.",
     })
     return
   }
 
   try {
     const { result } = await createServiceSlotWorkflow(req.scope).run({
-      input: body,
+      input: {
+        ...body,
+        serviceId,
+        productId: serviceId,
+      },
     })
 
     res.status(201).json({

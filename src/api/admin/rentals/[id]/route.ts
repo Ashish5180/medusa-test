@@ -8,6 +8,7 @@ const updateRentalItemSchema = z.object({
   daily_rate: z.coerce.number().positive().optional(),
   deposit_amount: z.coerce.number().positive().optional(),
   min_rental_days: z.coerce.number().int().positive().optional(),
+  max_rental_days: z.coerce.number().int().positive().optional(),
   condition_grade: z.string().optional(),
   is_active: z.boolean().optional(),
 })
@@ -43,6 +44,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         ? { deposit_amount: toCents(body.deposit_amount) }
         : {}),
       ...(body.min_rental_days !== undefined ? { min_rental_days: body.min_rental_days } : {}),
+      ...(body.max_rental_days !== undefined ? { max_rental_days: body.max_rental_days } : {}),
       ...(body.condition_grade !== undefined ? { condition_grade: body.condition_grade } : {}),
       ...(body.is_active !== undefined ? { is_active: body.is_active } : {}),
     })

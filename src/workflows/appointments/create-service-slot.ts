@@ -4,11 +4,13 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { APPOINTMENT_MODULE } from "../../modules/appointment"
 import AppointmentModuleService from "../../modules/appointment/service"
 
 export type CreateServiceSlotInput = {
   serviceId: string
+  productId?: string
   resourceId?: string
   resourceName?: string
   slotStart: string
@@ -21,9 +23,11 @@ export const createServiceSlotStep = createStep(
   async (input: CreateServiceSlotInput, { container }) => {
     const appointmentService: AppointmentModuleService =
       container.resolve(APPOINTMENT_MODULE)
+    const productId = input.productId || input.serviceId
 
     const slot = await appointmentService.createServiceSlots({
-      service_id: input.serviceId,
+      service_id: productId,
+      product_id: productId,
       resource_id: input.resourceId || "default-provider",
       resource_name: input.resourceName || "General Staff",
       slot_start: new Date(input.slotStart),
@@ -33,13 +37,32 @@ export const createServiceSlotStep = createStep(
       is_blocked: false,
     })
 
-    return new StepResponse(slot, slot.id)
+    if (productId && productId !== "srv_general") {
+      try {
+        const link = container.resolve(ContainerRegistrationKeys.LINK)
+        await link.create({
+          [Modules.PRODUCT]: { product_id: productId },
+          [APPOINTMENT_MODULE]: { service_slot_id: slot.id },
+        })
+      } catch {
+        // Slot still works; cart add will fail until a real product is linked.
+      }
+    }
+
+    return new StepResponse(slot, { slotId: slot.id, productId })
   },
-  async (slotId: string | undefined, { container }) => {
-    if (!slotId) return
+  async (compensate: { slotId?: string; productId?: string } | undefined, { container }) => {
+    if (!compensate?.slotId) return
     const appointmentService: AppointmentModuleService =
       container.resolve(APPOINTMENT_MODULE)
-    await appointmentService.deleteServiceSlots([slotId])
+    if (compensate.productId) {
+      const link = container.resolve(ContainerRegistrationKeys.LINK)
+      await link.dismiss({
+        [Modules.PRODUCT]: { product_id: compensate.productId },
+        [APPOINTMENT_MODULE]: { service_slot_id: compensate.slotId },
+      })
+    }
+    await appointmentService.deleteServiceSlots([compensate.slotId])
   }
 )
 

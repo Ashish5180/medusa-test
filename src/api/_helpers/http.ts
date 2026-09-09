@@ -18,7 +18,44 @@ export function parseBody<T>(
   return parsed.data
 }
 
+function messageFromUnknown(err: unknown): string | undefined {
+  if (err instanceof Error && err.message) {
+    return err.message
+  }
+
+  if (typeof err === "object" && err) {
+    const record = err as {
+      message?: unknown
+      errors?: Array<{ error?: { message?: unknown } | Error; message?: unknown }>
+    }
+
+    const nested = record.errors?.[0]
+    const nestedError = nested?.error
+    if (nestedError instanceof Error && nestedError.message) {
+      return nestedError.message
+    }
+    if (
+      nestedError &&
+      typeof nestedError === "object" &&
+      "message" in nestedError &&
+      nestedError.message
+    ) {
+      return String(nestedError.message)
+    }
+    if (nested?.message) {
+      return String(nested.message)
+    }
+    if (record.message) {
+      return String(record.message)
+    }
+  }
+
+  return undefined
+}
+
 export function fail(res: MedusaResponse, err: unknown, fallback: string) {
-  const message = err instanceof Error ? err.message : fallback
-  res.status(400).json({ success: false, message })
+  res.status(400).json({
+    success: false,
+    message: messageFromUnknown(err) || fallback,
+  })
 }

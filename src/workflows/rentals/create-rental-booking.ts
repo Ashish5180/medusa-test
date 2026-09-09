@@ -1,10 +1,10 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { MedusaError } from "@medusajs/framework/utils"
 import { RENTAL_MODULE } from "../../modules/rental"
 import RentalModuleService from "../../modules/rental/service"
 
@@ -14,6 +14,7 @@ export type CreateRentalBookingInput = {
   endDate: string
   orderId?: string
   customerId?: string
+  cartId?: string
   notes?: string
 }
 
@@ -66,6 +67,7 @@ export const createRentalBookingRecordStep = createStep(
       depositAmount: number
       orderId?: string
       customerId?: string
+      cartId?: string
       notes?: string
     },
     { container }
@@ -82,6 +84,7 @@ export const createRentalBookingRecordStep = createStep(
       rental_status: "reserved",
       order_id: input.orderId,
       customer_id: input.customerId,
+      cart_id: input.cartId,
       notes: input.notes,
     })
 
@@ -107,6 +110,7 @@ export const createRentalBookingWorkflow = createWorkflow(
       depositAmount: quoteResult.quote.depositAmount,
       orderId: input.orderId,
       customerId: input.customerId,
+      cartId: input.cartId,
       notes: input.notes,
     })
 

@@ -52,7 +52,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     res.json({
       status: "online",
       version: "2.20.1",
-      architecture: "Medusa v2 PERN Multi-Vertical (Orders + Rentals + Appointments + Events)",
+      architecture:
+        "Medusa v2 cart-native verticals: retail + rental + appointment in one checkout",
+      cart: {
+        addAppointment: "POST /store/carts/:id/line-items/appointment",
+        addRental: "POST /store/carts/:id/line-items/rental",
+        complete: "POST /store/carts/:id/complete",
+        payment: process.env.STRIPE_API_KEY
+          ? "stripe (manual capture)"
+          : "pp_system_default (set STRIPE_API_KEY for authorize-only Stripe)",
+      },
       modules: {
         nativeCommerce: {
           productsCount,

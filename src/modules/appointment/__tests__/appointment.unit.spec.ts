@@ -47,7 +47,7 @@ describe("AppointmentModuleService Unit Tests", () => {
       .mockResolvedValue({
         id: "app_1",
         slot_id: "slot_3",
-        status: "confirmed",
+        status: "pending",
       } as any)
 
     const updateSlotSpy = jest

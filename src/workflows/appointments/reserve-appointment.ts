@@ -13,7 +13,11 @@ export type ReserveAppointmentInput = {
   customerEmail?: string
   customerPhone?: string
   orderId?: string
+  customerId?: string
+  cartId?: string
+  lineItemId?: string
   notes?: string
+  status?: "pending" | "confirmed"
 }
 
 export const reserveAppointmentSlotStep = createStep(
@@ -24,10 +28,14 @@ export const reserveAppointmentSlotStep = createStep(
 
     const booking = await appointmentService.reserveSlot(input.slotId, {
       order_id: input.orderId,
+      customer_id: input.customerId,
+      cart_id: input.cartId,
+      line_item_id: input.lineItemId,
       customer_name: input.customerName,
       customer_email: input.customerEmail,
       customer_phone: input.customerPhone,
       notes: input.notes,
+      status: input.status || "pending",
     })
 
     return new StepResponse(booking, booking.id)

@@ -1,37 +1,34 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { RENTAL_MODULE } from "../../../../modules/rental"
-import RentalModuleService from "../../../../modules/rental/service"
+import { z } from "zod"
+import { fail, parseBody } from "../../../_helpers/http"
+import completeRentalWorkflow from "../../../../workflows/rentals/complete-rental"
+
+const schema = z.object({
+  bookingId: z.string().min(1, "bookingId is required"),
+  conditionOnReturn: z.string().min(1, "conditionOnReturn is required"),
+  damageFee: z.coerce.number().min(0).optional(),
+})
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const rentalService: RentalModuleService = req.scope.resolve(RENTAL_MODULE)
-  const body = req.body as {
-    bookingId: string
-    conditionOnReturn: string
-    damageFee?: number
-  }
-
-  if (!body.bookingId || !body.conditionOnReturn) {
-    res.status(400).json({
-      message: "bookingId and conditionOnReturn are required.",
-    })
+  const body = parseBody(schema, req.body, res)
+  if (!body) {
     return
   }
 
   try {
-    const inspection = await rentalService.processReturnInspection(
-      body.bookingId,
-      body.conditionOnReturn,
-      body.damageFee || 0
-    )
+    const { result } = await completeRentalWorkflow(req.scope).run({
+      input: {
+        bookingId: body.bookingId,
+        conditionOnReturn: body.conditionOnReturn,
+        damageFee: body.damageFee || 0,
+      },
+    })
 
     res.json({
       success: true,
-      ...inspection,
+      ...result,
     })
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message || "Failed to process return inspection",
-    })
+  } catch (err) {
+    fail(res, err, "Failed to process return inspection")
   }
 }

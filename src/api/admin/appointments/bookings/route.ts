@@ -1,8 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "zod"
 import { fail, parseBody } from "../../../_helpers/http"
-import { APPOINTMENT_MODULE } from "../../../../modules/appointment"
-import AppointmentModuleService from "../../../../modules/appointment/service"
+import reserveAppointmentWorkflow from "../../../../workflows/appointments/reserve-appointment"
 
 const createBookingSchema = z.object({
   slotId: z.string().min(1, "slotId is required"),
@@ -18,18 +17,19 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return
   }
 
-  const appointmentService: AppointmentModuleService =
-    req.scope.resolve(APPOINTMENT_MODULE)
-
   try {
-    const booking = await appointmentService.reserveSlot(body.slotId, {
-      customer_name: body.customerName,
-      customer_email: body.customerEmail || undefined,
-      customer_phone: body.customerPhone,
-      notes: body.notes,
+    const { result } = await reserveAppointmentWorkflow(req.scope).run({
+      input: {
+        slotId: body.slotId,
+        customerName: body.customerName,
+        customerEmail: body.customerEmail || undefined,
+        customerPhone: body.customerPhone,
+        notes: body.notes,
+        status: "confirmed",
+      },
     })
 
-    res.json({ success: true, booking })
+    res.json({ success: true, booking: result })
   } catch (err) {
     fail(res, err, "Failed to book slot")
   }

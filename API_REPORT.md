@@ -129,17 +129,33 @@ Retrieve all available rental items with rates, deposit requirements, and condit
 
 ---
 
-### `POST /store/rentals/book`
-Reserve a rental item for a date range with automatic conflict checking.
+### `POST /store/carts/:id/line-items/rental`
+Add a rental to a Medusa cart as **two lines**: fee + refundable deposit. Max **5 days**. Overlaps are rejected.
 - **Request**:
   ```bash
-  curl -s -X POST https://medusa-test-sbim.onrender.com/store/rentals/book \
+  curl -s -X POST http://localhost:9000/store/carts/cart_01XXX/line-items/rental \
     -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
     -H "Content-Type: application/json" \
     -d '{
       "item_id": "01M1NYVEWE16AMTZ1Z7SEW3TEA",
       "start_date": "2026-11-10T00:00:00Z",
-      "end_date": "2026-11-14T00:00:00Z",
+      "end_date": "2026-11-12T00:00:00Z",
+      "notes": "Customer web reservation"
+    }'
+  ```
+
+### `POST /store/rentals/book`
+Same as the cart rental route. **Requires `cart_id`** — bookings no longer skip checkout.
+- **Request**:
+  ```bash
+  curl -s -X POST http://localhost:9000/store/rentals/book \
+    -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "cart_id": "cart_01XXX",
+      "itemId": "01M1NYVEWE16AMTZ1Z7SEW3TEA",
+      "startDate": "2026-11-10T00:00:00Z",
+      "endDate": "2026-11-12T00:00:00Z",
       "notes": "Customer web reservation"
     }'
   ```
@@ -202,11 +218,11 @@ Fetch schedule slots for consultation, service, or doctor booking.
 
 ---
 
-### `POST /store/appointments/book`
-Book an open slot with customer details.
+### `POST /store/carts/:id/line-items/appointment`
+Hold a slot on a Medusa cart. Checkout authorizes; complete/no-show captures.
 - **Request**:
   ```bash
-  curl -s -X POST https://medusa-test-sbim.onrender.com/store/appointments/book \
+  curl -s -X POST http://localhost:9000/store/carts/cart_01XXX/line-items/appointment \
     -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
     -H "Content-Type: application/json" \
     -d '{
@@ -214,6 +230,23 @@ Book an open slot with customer details.
       "customer_name": "Aarav Sharma",
       "customer_email": "aarav@example.com",
       "customer_phone": "+919876543210",
+      "notes": "Initial consultation request"
+    }'
+  ```
+
+### `POST /store/appointments/book`
+Same as the cart appointment route. **Requires `cart_id`**.
+- **Request**:
+  ```bash
+  curl -s -X POST http://localhost:9000/store/appointments/book \
+    -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "cart_id": "cart_01XXX",
+      "slotId": "01M1PBAWXXBYFRATQNSKEMW89Y",
+      "customerName": "Aarav Sharma",
+      "customerEmail": "aarav@example.com",
+      "customerPhone": "+919876543210",
       "notes": "Initial consultation request"
     }'
   ```
@@ -331,11 +364,13 @@ Fetch core Medusa catalog products, variants, and pricing.
 | **Overview**| `/store/multi-vertical/summary` | `GET` | `x-publishable-api-key` | Aggregated count across all 4 verticals |
 | **Auth** | `/auth/user/emailpass` | `POST` | None | Admin login -> returns JWT token |
 | **Rentals** | `/store/rentals/items` | `GET` | `x-publishable-api-key` | List rental catalog |
-| **Rentals** | `/store/rentals/book` | `POST` | `x-publishable-api-key` | Reserve rental equipment |
+| **Rentals** | `/store/carts/:id/line-items/rental` | `POST` | `x-publishable-api-key` | Add rental fee + deposit to cart |
+| **Rentals** | `/store/rentals/book` | `POST` | `x-publishable-api-key` | Same as cart rental; requires `cart_id` |
 | **Rentals** | `/admin/rentals` | `GET`, `POST` | `Bearer <TOKEN>` | Manage rental fleet & bookings |
 | **Rentals** | `/admin/rentals/inspections`| `POST` | `Bearer <TOKEN>` | Return condition & deposit release |
 | **Appointments** | `/store/appointments/slots`| `GET` | `x-publishable-api-key` | List bookable consultation slots |
-| **Appointments** | `/store/appointments/book` | `POST` | `x-publishable-api-key` | Book consultation slot |
+| **Appointments** | `/store/carts/:id/line-items/appointment` | `POST` | `x-publishable-api-key` | Hold slot on a cart |
+| **Appointments** | `/store/appointments/book` | `POST` | `x-publishable-api-key` | Same as cart appointment; requires `cart_id` |
 | **Appointments** | `/admin/appointments/calendar` | `GET`, `POST` | `Bearer <TOKEN>` | Calendar view & create slots |
 | **Events** | `/store/events` | `GET` | `x-publishable-api-key` | List public events & capacity |
 | **Events** | `/store/events/tickets` | `GET`, `POST` | `x-publishable-api-key` | View & purchase event tickets |

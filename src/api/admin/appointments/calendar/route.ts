@@ -3,9 +3,11 @@ import { z } from "zod"
 import { fail, parseBody } from "../../../_helpers/http"
 import { APPOINTMENT_MODULE } from "../../../../modules/appointment"
 import AppointmentModuleService from "../../../../modules/appointment/service"
+import createServiceSlotWorkflow from "../../../../workflows/appointments/create-service-slot"
 
 const createSlotSchema = z.object({
   service_id: z.string().optional(),
+  product_id: z.string().optional(),
   resource_name: z.string().min(1, "resource_name is required"),
   slot_start: z.string().min(1, "slot_start is required"),
   slot_end: z.string().min(1, "slot_end is required"),
@@ -31,28 +33,28 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return
   }
 
-  const appointmentService: AppointmentModuleService =
-    req.scope.resolve(APPOINTMENT_MODULE)
+  const slotStart = new Date(body.slot_start)
+  const slotEnd = new Date(body.slot_end)
+  if (Number.isNaN(slotStart.getTime()) || Number.isNaN(slotEnd.getTime()) || slotEnd <= slotStart) {
+    res.status(400).json({ message: "slot_end must be after slot_start." })
+    return
+  }
+
+  const serviceId = body.product_id || body.service_id || "srv_general"
 
   try {
-    const slotStart = new Date(body.slot_start)
-    const slotEnd = new Date(body.slot_end)
-    if (Number.isNaN(slotStart.getTime()) || Number.isNaN(slotEnd.getTime()) || slotEnd <= slotStart) {
-      res.status(400).json({ message: "slot_end must be after slot_start." })
-      return
-    }
-
-    const slot = await appointmentService.createServiceSlots({
-      service_id: body.service_id || "srv_general",
-      resource_name: body.resource_name,
-      slot_start: slotStart,
-      slot_end: slotEnd,
-      max_capacity: body.max_capacity || 1,
-      booked_count: 0,
-      is_blocked: false,
+    const { result } = await createServiceSlotWorkflow(req.scope).run({
+      input: {
+        serviceId,
+        productId: body.product_id || body.service_id,
+        resourceName: body.resource_name,
+        slotStart: body.slot_start,
+        slotEnd: body.slot_end,
+        maxCapacity: body.max_capacity || 1,
+      },
     })
 
-    res.json({ success: true, slot })
+    res.json({ success: true, slot: result })
   } catch (err) {
     fail(res, err, "Failed to create slot")
   }
