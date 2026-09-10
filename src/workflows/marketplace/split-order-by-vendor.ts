@@ -141,8 +141,27 @@ const splitOrderStep = createStep<SplitOrderInput, SplitResult, SplitCompensate>
     const childOrderIds: string[] = []
 
     try {
+      const vendorService = container.resolve(VENDOR_MODULE) as {
+        retrieveVendor: (id: string) => Promise<{ commission_rate?: number }>
+      }
+
       for (const vendorId of vendorIds) {
         const vendorItems = byVendor.get(vendorId) ?? []
+        let vendorSubtotal = 0
+        for (const item of vendorItems) {
+          vendorSubtotal += Number(item.unit_price ?? 0) * Number(item.quantity ?? 1)
+        }
+
+        let commissionRate = 15
+        try {
+          const v = await vendorService.retrieveVendor(vendorId)
+          commissionRate = Number(v.commission_rate ?? 15)
+        } catch {
+          // Default fallback
+        }
+
+        const platformCommission = Math.round((vendorSubtotal * commissionRate) / 100)
+        const vendorPayout = vendorSubtotal - platformCommission
 
         const { result: childOrder } = await createOrderWorkflow(container).run({
           input: {
@@ -162,6 +181,11 @@ const splitOrderStep = createStep<SplitOrderInput, SplitResult, SplitCompensate>
             metadata: {
               parent_order_id: parentOrder.id,
               vendor_id: vendorId,
+              vendor_subtotal: vendorSubtotal,
+              commission_rate: commissionRate,
+              platform_commission: platformCommission,
+              vendor_payout: vendorPayout,
+              payout_status: "pending",
             },
           },
           context,

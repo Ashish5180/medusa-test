@@ -9,6 +9,9 @@ const createVendorSchema = z.object({
   name: z.string().min(1, "name is required"),
   handle: z.string().min(1, "handle is required"),
   email: z.string().email().optional(),
+  description: z.string().optional(),
+  logo: z.string().optional(),
+  status: z.enum(["pending_approval", "active", "suspended"]).optional(),
   commission_rate: z.coerce.number().min(0).max(100).optional(),
 })
 
@@ -51,9 +54,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       name: body.name,
       handle: body.handle.toLowerCase().replace(/\s+/g, "-"),
       email: body.email ?? null,
+      description: body.description ?? null,
+      logo: body.logo ?? null,
+      status: body.status ?? "active",
       commission_rate: body.commission_rate ?? 15,
       is_platform: false,
-      is_active: true,
+      is_active: body.status !== "suspended",
     })
     res.json({ success: true, vendor })
   } catch (err) {

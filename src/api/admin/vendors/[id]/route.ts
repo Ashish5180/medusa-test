@@ -9,6 +9,9 @@ const updateVendorSchema = z.object({
   name: z.string().min(1).optional(),
   handle: z.string().min(1).optional(),
   email: z.string().email().optional(),
+  description: z.string().optional(),
+  logo: z.string().optional(),
+  status: z.enum(["pending_approval", "active", "suspended"]).optional(),
   commission_rate: z.coerce.number().min(0).max(100).optional(),
   is_active: z.boolean().optional(),
 })
@@ -52,6 +55,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         ? { handle: body.handle.toLowerCase().replace(/\s+/g, "-") }
         : {}),
       ...(body.email !== undefined ? { email: body.email } : {}),
+      ...(body.description !== undefined ? { description: body.description } : {}),
+      ...(body.logo !== undefined ? { logo: body.logo } : {}),
+      ...(body.status !== undefined
+        ? {
+            status: body.status,
+            is_active: body.status === "active",
+          }
+        : {}),
       ...(body.commission_rate !== undefined
         ? { commission_rate: body.commission_rate }
         : {}),

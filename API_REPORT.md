@@ -356,6 +356,131 @@ Fetch core Medusa catalog products, variants, and pricing.
 
 ---
 
+## 🏬 6. Multi-Vendor Marketplace APIs
+
+### `GET /store/vendors`
+Fetch all approved and active public vendors.
+- **Request**:
+  ```bash
+  curl -s -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+    "https://medusa-test-sbim.onrender.com/store/vendors"
+  ```
+- **Response**:
+  ```json
+  {
+    "vendors": [
+      {
+        "id": "01M22HAREMWHFAFFBNB9FGXPP7",
+        "name": "Acme Gear",
+        "handle": "acme-gear",
+        "logo": null,
+        "description": "Premium outdoor gear supplier",
+        "status": "active"
+      }
+    ]
+  }
+  ```
+
+---
+
+### `POST /store/vendors/register`
+Self-serve onboarding endpoint for prospective merchants. Automatically registers the vendor in `pending_approval` status, creates a merchant user account, associates the `VendorAdmin` entity, and sets up remote links.
+- **Request Body**:
+  ```json
+  {
+    "name": "Summit Outdoors",
+    "handle": "summit-outdoors",
+    "email": "merchant@summitoutdoors.com",
+    "password": "SecurePassword123!",
+    "description": "High-altitude mountaineering equipment"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "message": "Vendor application submitted successfully and is pending approval.",
+    "vendor": {
+      "id": "01M25ZKKYH04VVJ66ERA03T3DM",
+      "name": "Summit Outdoors",
+      "handle": "summit-outdoors",
+      "email": "merchant@summitoutdoors.com",
+      "description": "High-altitude mountaineering equipment",
+      "status": "pending_approval"
+    },
+    "userId": "user_01M25ZKM8CBQGKDZ3NBA31GK4K"
+  }
+  ```
+
+---
+
+### `GET /store/vendors/:handle/status`
+Check the approval and activation status of a vendor by unique store handle.
+- **Request**:
+  ```bash
+  curl -s -H "x-publishable-api-key: pk_ad6038993d2bae4c3f6892c2063c1e741b1e5a3418cda0fca8e99592ae595ef8" \
+    "https://medusa-test-sbim.onrender.com/store/vendors/summit-outdoors/status"
+  ```
+- **Response**:
+  ```json
+  {
+    "vendor": {
+      "id": "01M25ZKKYH04VVJ66ERA03T3DM",
+      "name": "Summit Outdoors",
+      "handle": "summit-outdoors",
+      "logo": null,
+      "description": "High-altitude mountaineering equipment",
+      "status": "pending_approval",
+      "is_active": false
+    }
+  }
+  ```
+
+---
+
+### `POST /admin/vendors/:id/approve`
+Super-admin endpoint to approve and activate a vendor application.
+- **Request**:
+  ```bash
+  curl -s -X POST https://medusa-test-sbim.onrender.com/admin/vendors/01M25ZKKYH04VVJ66ERA03T3DM/approve \
+    -H "Authorization: Bearer <TOKEN>"
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "message": "Vendor \"Summit Outdoors\" has been approved and activated.",
+    "vendor": {
+      "id": "01M25ZKKYH04VVJ66ERA03T3DM",
+      "name": "Summit Outdoors",
+      "status": "active",
+      "is_active": true
+    }
+  }
+  ```
+
+---
+
+### `POST /admin/vendors/:id/suspend`
+Super-admin endpoint to suspend a vendor and immediately hide their catalog from the public storefront.
+- **Request**:
+  ```bash
+  curl -s -X POST https://medusa-test-sbim.onrender.com/admin/vendors/01M25ZKKYH04VVJ66ERA03T3DM/suspend \
+    -H "Authorization: Bearer <TOKEN>"
+  ```
+
+---
+
+### `POST /admin/vendors/orders/split`
+Workflow endpoint that splits a unified multi-vendor customer checkout order into vendor-specific child orders with automated platform commission and vendor payout calculations.
+- **Request Body**:
+  ```json
+  {
+    "order_id": "order_01M2..."
+  }
+  ```
+
+
 ## 🛠️ Summary Matrix of Endpoints
 
 | Category | Endpoint | Method | Auth / Header | Purpose |
@@ -376,6 +501,13 @@ Fetch core Medusa catalog products, variants, and pricing.
 | **Events** | `/store/events/tickets` | `GET`, `POST` | `x-publishable-api-key` | View & purchase event tickets |
 | **Events** | `/admin/events` | `GET`, `POST` | `Bearer <TOKEN>` | Create & manage event registrations |
 | **Events** | `/admin/events/checkin` | `POST` | `Bearer <TOKEN>` | Gate pass check-in validator |
+| **Marketplace** | `/store/vendors` | `GET` | `x-publishable-api-key` | List active public vendors |
+| **Marketplace** | `/store/vendors/register` | `POST` | `x-publishable-api-key` | Self-serve vendor registration (pending approval) |
+| **Marketplace** | `/store/vendors/:handle/status` | `GET` | `x-publishable-api-key` | Check vendor approval status |
+| **Marketplace** | `/admin/vendors` | `GET`, `POST` | `Bearer <TOKEN>` | List and create marketplace vendors |
+| **Marketplace** | `/admin/vendors/:id/approve` | `POST` | `Bearer <TOKEN>` | Super-admin approve & activate vendor |
+| **Marketplace** | `/admin/vendors/:id/suspend` | `POST` | `Bearer <TOKEN>` | Super-admin suspend vendor |
+| **Marketplace** | `/admin/vendors/orders/split`| `POST` | `Bearer <TOKEN>` | Trigger order splitting with commission calculation |
 | **Commerce** | `/store/products` | `GET` | `x-publishable-api-key` | Physical retail products & variants |
 
 ---

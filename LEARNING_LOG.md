@@ -94,3 +94,34 @@ Medusa v2's Admin Dashboard is a React Single-Page Application bundled with Vite
 ### Core Concept
 In Medusa v2, when link definitions between modules change or are removed (for instance, migrating from `marketplace.vendor` to `vendorModuleService.vendor`), `medusa db:migrate` detects orphaned link tables and opens an interactive prompt asking which tables to drop. In unattended CI/CD and deployment environments (Railway, Docker, Render), no TTY/stdin exists, causing the process to hang indefinitely until a build timeout occurs. Passing `--execute-all-links` forces the Medusa CLI to apply all link table additions, updates, and removals automatically without interactive prompts.
 
+---
+
+## 6. Multi-Vendor Marketplace Architecture & Automated Order Splitting
+
+### What Was Built
+A comprehensive Multi-Vendor Marketplace subsystem composed of:
+1. **Custom Vendor Module (`src/modules/vendor/`)**: Encapsulates `Vendor` (`id, name, handle, logo, description, status: pending_approval | active | suspended, commission_rate`) and `VendorAdmin` (`vendor_id, user_id, email, role`).
+2. **Explicit Module Links (`src/links/`)**:
+   - `Vendor <-> User`: Scopes authenticated vendor admins to their store operations.
+   - `Vendor <-> Product`: Enforces catalog ownership and isolation.
+   - `Vendor <-> Stock Location`: Allocates physical inventory locations per merchant.
+   - `Vendor <-> Sales Channel`: Isolates vendor storefronts and distribution channels.
+   - `Vendor <-> Order`: Connects customer purchases to vendor accounting.
+3. **Cart & Order Splitting Workflow (`splitOrderByVendorWorkflow`)**:
+   - Executes upon `order.placed` events or manual invocation.
+   - Inspects line items and groups them by product vendor association.
+   - Splits a unified customer checkout into vendor-specific child orders.
+   - Automatically computes platform commission (`vendor_subtotal * (commission_rate / 100)`) and vendor payout (`vendor_subtotal - platform_commission`), tagging the child order with `payout_status: "pending"`.
+4. **Self-Serve Merchant Onboarding & Super-Admin Approval**:
+   - `POST /store/vendors/register`: Allows new merchants to apply. Creates the vendor in `pending_approval` status, registers a merchant user account, creates `VendorAdmin`, and links user to vendor via remote links.
+   - `GET /store/vendors/:handle/status`: Enables prospective vendors to check verification status.
+   - `GET /store/vendors`: Public storefront endpoint returning only `active` approved merchants.
+   - `POST /admin/vendors/:id/approve` & `POST /admin/vendors/:id/suspend`: Super-admin approval state machine endpoints.
+
+### Why We Did It
+In modern commerce, consumers expect single checkouts containing items from multiple distinct brands. Without automated order splitting and module linking, merchant inventory is entangled, payouts require manual spreadsheet calculations, and multi-tenant security cannot be enforced.
+
+### Alternatives Considered
+- **Single Store with Tags / Metadata:** Storing `metadata.vendor_id` on products and orders. This breaks inventory location isolation, cannot enforce RBAC at the module layer, and prevents vendors from managing their own sales channels.
+- **Independent Separate Medusa Instances per Vendor:** Total isolation, but impossible for a buyer to place a single checkout across multiple vendors in a unified marketplace.
+

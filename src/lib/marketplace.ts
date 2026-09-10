@@ -145,6 +145,45 @@ export async function linkOrderToVendor(
   })
 }
 
+/** Attach a user to a vendor. */
+export async function linkUserToVendor(
+  container: MedusaContainer,
+  vendorId: string,
+  userId: string
+) {
+  const link = container.resolve(ContainerRegistrationKeys.LINK)
+  await link.create({
+    [VENDOR_MODULE]: { vendor_id: vendorId },
+    [Modules.USER]: { user_id: userId },
+  })
+}
+
+/** Attach a stock location to a vendor. */
+export async function linkStockLocationToVendor(
+  container: MedusaContainer,
+  vendorId: string,
+  stockLocationId: string
+) {
+  const link = container.resolve(ContainerRegistrationKeys.LINK)
+  await link.create({
+    [VENDOR_MODULE]: { vendor_id: vendorId },
+    [Modules.STOCK_LOCATION]: { stock_location_id: stockLocationId },
+  })
+}
+
+/** Attach a sales channel to a vendor. */
+export async function linkSalesChannelToVendor(
+  container: MedusaContainer,
+  vendorId: string,
+  salesChannelId: string
+) {
+  const link = container.resolve(ContainerRegistrationKeys.LINK)
+  await link.create({
+    [VENDOR_MODULE]: { vendor_id: vendorId },
+    [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannelId },
+  })
+}
+
 /**
  * Which vendor a write should be attributed to. Platform users may act on
  * behalf of any vendor by passing an explicit id.
@@ -169,3 +208,4 @@ export function splitCommission(total: number, commissionRate: number) {
     rate,
   }
 }
+

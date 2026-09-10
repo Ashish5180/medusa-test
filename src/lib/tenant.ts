@@ -12,7 +12,7 @@ function actorIdFromRequest(req: MedusaRequest): string | undefined {
 
 export type Tenant = {
   userId: string
-  role: "platform" | "owner" | "staff"
+  role: "platform" | "owner" | "admin" | "staff"
   is_platform: boolean
   vendor: { id: string; name: string; handle: string; is_platform: boolean } | null
 }
