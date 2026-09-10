@@ -1,5 +1,5 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type { z } from "zod"
+import type { z } from "@medusajs/framework/zod"
 
 export function parseBody<T>(
   schema: z.ZodType<T>,

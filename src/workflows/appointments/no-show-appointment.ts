@@ -1,3 +1,4 @@
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -13,7 +14,7 @@ export type NoShowAppointmentInput = {
 }
 
 const markNoShowStep = createStep(
-  "mark-appointment-no-show",
+  "mark-no-show",
   async (input: NoShowAppointmentInput, { container }) => {
     const appointmentService: AppointmentModuleService =
       container.resolve(APPOINTMENT_MODULE)
@@ -36,13 +37,13 @@ const markNoShowStep = createStep(
 )
 
 const captureNoShowPaymentStep = createStep(
-  "capture-appointment-no-show-payment",
+  "capture-no-show-payment",
   async (booking: { order_id?: string | null; line_item_id?: string | null }, { container }) => {
     if (!booking.order_id) {
       return new StepResponse({ skipped: true })
     }
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
     }
     const { data } = await query.graph({

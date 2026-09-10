@@ -1,3 +1,4 @@
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import bindVerticalsToOrderWorkflow from "../workflows/cart/bind-verticals-to-order"
 
@@ -5,7 +6,7 @@ export default async function orderPlacedVerticals({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  const query = container.resolve("query") as {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
   }
 

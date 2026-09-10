@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 import { fail, parseBody } from "../../../_helpers/http"
 import { resolveTenant, vendorScope } from "../../../../lib/tenant"
 import { APPOINTMENT_MODULE } from "../../../../modules/appointment"

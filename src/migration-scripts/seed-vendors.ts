@@ -1,5 +1,5 @@
 import { MedusaContainer } from "@medusajs/framework"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules, MedusaError } from "@medusajs/framework/utils"
 import { createUserAccountWorkflow } from "@medusajs/medusa/core-flows"
 import { VENDOR_MODULE } from "../modules/vendor"
 import VendorModuleService from "../modules/vendor/service"
@@ -34,7 +34,10 @@ async function ensureUser(
   })
 
   if (!registered.authIdentity?.id) {
-    throw new Error(registered.error || `Could not register ${email}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      registered.error || `Could not register ${email}`
+    )
   }
 
   const { result } = await createUserAccountWorkflow(container).run({

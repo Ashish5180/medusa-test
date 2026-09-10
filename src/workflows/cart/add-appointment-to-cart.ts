@@ -1,4 +1,4 @@
-import { MedusaError } from "@medusajs/framework/utils"
+import { MedusaError, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -24,7 +24,7 @@ export type AddAppointmentToCartInput = {
 }
 
 const addAppointmentLineStep = createStep(
-  "add-appointment-line-to-cart",
+  "add-appointment-line",
   async (
     input: AddAppointmentToCartInput & { bookingId: string },
     { container }
@@ -66,7 +66,7 @@ const addAppointmentLineStep = createStep(
       },
     })
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
     }
     const { data } = await query.graph({

@@ -17,7 +17,7 @@ export type CancelRentalInput = {
 }
 
 const cancelRentalAndOrderStep = createStep(
-  "cancel-rental-and-open-order",
+  "cancel-rental-and-order",
   async (input: CancelRentalInput, { container }) => {
     const rentalService: RentalModuleService = container.resolve(RENTAL_MODULE)
     const booking = await rentalService.retrieveRentalBooking(input.bookingId)

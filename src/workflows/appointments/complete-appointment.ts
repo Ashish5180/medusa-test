@@ -1,3 +1,4 @@
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -43,7 +44,7 @@ const captureAppointmentPaymentStep = createStep(
       return new StepResponse({ skipped: true })
     }
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
     }
     let amount = 0

@@ -18,7 +18,7 @@ export type CompleteRentalInput = {
 }
 
 const inspectRentalStep = createStep(
-  "inspect-rental-return",
+  "inspect-rental",
   async (input: CompleteRentalInput, { container }) => {
     const rentalService: RentalModuleService = container.resolve(RENTAL_MODULE)
     const previous = await rentalService.retrieveRentalBooking(input.bookingId)

@@ -83,3 +83,14 @@ export const config = defineRouteConfig({
 
 ### Core Concept
 Medusa v2's Admin Dashboard is a React Single-Page Application bundled with Vite. By placing a `page.tsx` in `src/admin/routes/` and exporting `config`, Medusa's admin bundler automatically injects the route, assigns it an icon and label in the left navigation sidebar, and handles session authentication without any routing boilerplate.
+
+---
+
+## 5. Non-Interactive Link Syncing in CI/CD (`--execute-all-links`)
+
+### What Was Used
+`medusa db:migrate --execute-all-links`
+
+### Core Concept
+In Medusa v2, when link definitions between modules change or are removed (for instance, migrating from `marketplace.vendor` to `vendorModuleService.vendor`), `medusa db:migrate` detects orphaned link tables and opens an interactive prompt asking which tables to drop. In unattended CI/CD and deployment environments (Railway, Docker, Render), no TTY/stdin exists, causing the process to hang indefinitely until a build timeout occurs. Passing `--execute-all-links` forces the Medusa CLI to apply all link table additions, updates, and removals automatically without interactive prompts.
+

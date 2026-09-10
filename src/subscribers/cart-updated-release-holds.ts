@@ -1,3 +1,4 @@
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { APPOINTMENT_MODULE } from "../modules/appointment"
 import AppointmentModuleService from "../modules/appointment/service"
@@ -12,7 +13,7 @@ export default async function cartUpdatedReleaseHolds({
   const cartId = data.id
   if (!cartId) return
 
-  const query = container.resolve("query") as {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
   }
   const { data: carts } = await query.graph({

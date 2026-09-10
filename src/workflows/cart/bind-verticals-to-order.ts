@@ -24,7 +24,7 @@ export type BindVerticalsToOrderInput = {
 }
 
 const bindVerticalsStep = createStep(
-  "bind-vertical-bookings-to-order",
+  "bind-verticals",
   async (input: BindVerticalsToOrderInput, { container }) => {
     const appointmentService: AppointmentModuleService =
       container.resolve(APPOINTMENT_MODULE)

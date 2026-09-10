@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { deleteProductsWorkflow, updateProductsWorkflow } from "@medusajs/medusa/core-flows"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 import { fail, parseBody } from "../../../../_helpers/http"
 import { getVendorsForProducts, linkProductToVendor } from "../../../../../lib/marketplace"
 import { verticalFromKind } from "../../../../../lib/commerce"

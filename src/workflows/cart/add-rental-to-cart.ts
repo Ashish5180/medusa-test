@@ -1,4 +1,4 @@
-import { MedusaError } from "@medusajs/framework/utils"
+import { MedusaError, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -23,7 +23,7 @@ export type AddRentalToCartInput = {
 }
 
 const addRentalLinesStep = createStep(
-  "add-rental-lines-to-cart",
+  "add-rental-lines",
   async (
     input: AddRentalToCartInput & {
       bookingId: string
@@ -88,7 +88,7 @@ const addRentalLinesStep = createStep(
       },
     })
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
     }
     const { data } = await query.graph({

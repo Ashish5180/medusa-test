@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 import { fail, parseBody } from "../../../../_helpers/http"
 import cancelAppointmentWorkflow from "../../../../../workflows/appointments/cancel-appointment"
 import completeAppointmentWorkflow from "../../../../../workflows/appointments/complete-appointment"

@@ -1,4 +1,4 @@
-import { MedusaError } from "@medusajs/framework/utils"
+import { MedusaError, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -41,7 +41,7 @@ const addEventLineStep = createStep(
     const variantId = firstVariantId(product)
     const ticketTier = input.ticketTier || "General Admission"
 
-    const query = container.resolve("query") as {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
       graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
     }
     const { data: carts } = await query.graph({

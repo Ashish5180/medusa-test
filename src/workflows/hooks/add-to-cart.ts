@@ -1,4 +1,4 @@
-import { MedusaError } from "@medusajs/framework/utils"
+import { MedusaError, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
 import { verticalFromKind, VERTICAL } from "../../lib/commerce"
 
@@ -11,7 +11,7 @@ addToCartWorkflow.hooks.validate(async ({ input }, { container }) => {
     return
   }
 
-  const query = container.resolve("query") as {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
     graph: (args: Record<string, unknown>) => Promise<{ data: any[] }>
   }
   const { data: variants } = await query.graph({

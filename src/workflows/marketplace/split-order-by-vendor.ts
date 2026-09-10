@@ -54,7 +54,7 @@ type ParentOrder = {
  * instead, so we never create a pointless duplicate.
  */
 const splitOrderStep = createStep<SplitOrderInput, SplitResult, SplitCompensate>(
-  "split-order-by-vendor",
+  "split-order",
   async ({ orderId }, { container, context }) => {
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const query = container.resolve(ContainerRegistrationKeys.QUERY)

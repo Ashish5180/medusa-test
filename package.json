@@ -9,8 +9,8 @@
   "packageManager": "npm@11.19.0",
   "scripts": {
     "build": "medusa build",
-    "build:render": "medusa build && medusa db:migrate",
-    "build:railway": "medusa build && node scripts/assert-admin-build.cjs && node scripts/sync-admin-public.cjs && medusa db:migrate",
+    "build:render": "medusa build && medusa db:migrate --execute-all-links",
+    "build:railway": "medusa build && node scripts/assert-admin-build.cjs && node scripts/sync-admin-public.cjs && medusa db:migrate --execute-all-links",
     "start": "node scripts/start-production.cjs",
     "dev": "medusa develop",
     "lint": "medusa lint",

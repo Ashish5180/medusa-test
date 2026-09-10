@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 import { fail, parseBody } from "../../../_helpers/http"
 import { EVENT_MODULE } from "../../../../modules/event"
 import EventModuleService from "../../../../modules/event/service"
