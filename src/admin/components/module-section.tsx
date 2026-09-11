@@ -113,11 +113,13 @@ export function ModuleSection<T extends { id: string }>({
                     <Select.Value placeholder={`Select ${field.label.toLowerCase()}`} />
                   </Select.Trigger>
                   <Select.Content>
-                    {(field.options ?? []).map((option) => (
-                      <Select.Item key={option.value} value={option.value}>
-                        {option.label}
-                      </Select.Item>
-                    ))}
+                    {(field.options ?? [])
+                      .filter((option) => Boolean(option.value))
+                      .map((option) => (
+                        <Select.Item key={option.value} value={option.value}>
+                          {option.label}
+                        </Select.Item>
+                      ))}
                   </Select.Content>
                 </Select>
               ) : (

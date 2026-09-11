@@ -14,7 +14,7 @@ type Vendor = {
 
 const ProductVendorWidget = ({ data }: DetailWidgetProps<HttpTypes.AdminProduct>) => {
   const queryClient = useQueryClient()
-  const initialVendorId = (data.metadata?.vendor_id as string) || ""
+  const initialVendorId = (data.metadata?.vendor_id as string) || "platform"
   const [selectedVendorId, setSelectedVendorId] = useState(initialVendorId)
   const [saving, setSaving] = useState(false)
 
@@ -24,7 +24,7 @@ const ProductVendorWidget = ({ data }: DetailWidgetProps<HttpTypes.AdminProduct>
   })
 
   const vendors = vendorsData?.vendors || []
-  const currentVendor = vendors.find((v) => v.id === initialVendorId)
+  const currentVendor = initialVendorId !== "platform" ? vendors.find((v) => v.id === initialVendorId) : null
 
   async function save() {
     setSaving(true)
@@ -32,7 +32,7 @@ const ProductVendorWidget = ({ data }: DetailWidgetProps<HttpTypes.AdminProduct>
       await sdk.admin.product.update(data.id, {
         metadata: {
           ...(data.metadata || {}),
-          vendor_id: selectedVendorId || null,
+          vendor_id: selectedVendorId === "platform" ? null : selectedVendorId,
         },
       })
       toast.success("Product vendor assignment updated")
@@ -74,7 +74,7 @@ const ProductVendorWidget = ({ data }: DetailWidgetProps<HttpTypes.AdminProduct>
             <Select.Value placeholder={isLoading ? "Loading vendors..." : "Select a marketplace vendor"} />
           </Select.Trigger>
           <Select.Content>
-            <Select.Item value="">
+            <Select.Item value="platform">
               Platform / In-House Store
             </Select.Item>
             {vendors.map((v) => (
